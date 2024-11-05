@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Post</title>
+</head>
+<body>
+    <h1>Create New Post</h1>
+    <form th:action="@{/community/createPost}" method="post" th:object="${postRequest}">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" th:field="*{title}" />
+        <br/>
+        <label for="content">Content:</label>
+        <textarea id="content" name="content" th:field="*{content}"></textarea>
+        <br/>
+        <label for="imageUrl">Image URL:</label>
+        <input type="text" id="imageUrl" name="imageUrl" th:field="*{imageUrl}" />
+        <br/>
+        <button type="submit">Create Post</button>
+    </form>
+    <a href="/community">Back to List</a>
+</body>
+</html>

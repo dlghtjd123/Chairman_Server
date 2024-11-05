@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>휠체어 대여</title>
+</head>
+<body>
+    <h1>휠체어 대여</h1>
+    <form th:action="@{/normal/rent}" method="post">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+        <label for="wheelchairType">휠체어 유형:</label>
+        <select id="wheelchairType" name="wheelchairType">
+            <option th:each="type : ${wheelchairTypes}" th:value="${type}" th:text="${type}"></option>
+        </select>
+        <label for="returnDate">반납 날짜:</label>
+        <input type="datetime-local" id="returnDate" name="returnDate" required/>
+        <button type="submit">대여</button>
+    </form>
+</body>
+</html>

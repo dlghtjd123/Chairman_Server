@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>휠체어 반납</title>
+</head>
+<body>
+    <h1>휠체어 반납</h1>
+    <form th:action="@{/normal/return}" method="post">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+        <label for="rentalId">대여 ID:</label>
+        <input type="number" id="rentalId" name="rentalId" required/>
+        <button type="submit">반납</button>
+    </form>
+</body>
+</html>

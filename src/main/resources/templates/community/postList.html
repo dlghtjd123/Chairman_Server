@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Post List</title>
+</head>
+<body>
+    <h1>Posts</h1>
+    <a href="/community/createPost">Create New Post</a>
+    <ul>
+        <li th:each="post : ${posts}">
+            <a th:href="@{/community/post/{id}(id=${post.postId})}" th:text="${post.title}">Post Title</a>
+        </li>
+    </ul>
+</body>
+</html>

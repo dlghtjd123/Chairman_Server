@@ -52,15 +52,4 @@ public class WheelchairController {
 
         return counts;
     }
-
-    // 휠체어 위치 정보 제공
-    @GetMapping("/map")
-    public ResponseEntity<?> showMap() {
-        Wheelchair wheelchair = wheelchairRepository.findById(1L)
-            .orElseThrow(() -> new IllegalArgumentException("Wheelchair not found"));
-        
-        return ResponseEntity.ok(wheelchair.getLocation());
-    }
-
-
 }

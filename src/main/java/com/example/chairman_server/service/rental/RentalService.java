@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -115,8 +114,8 @@ public class RentalService {
         Rental rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid rental ID"));
 
-        // 대여 요청의 상태를 REJECTED로 변경
-        rental.setStatus(RentalStatus.REJECTED);
+        // 대여 요청의 상태를 REJECTED 변경
+        rental.setStatus(RentalStatus.CANCELLED);
         rentalRepository.save(rental);
 
         // 로그 추가

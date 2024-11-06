@@ -5,8 +5,7 @@ import lombok.Getter;
 @Getter
 public enum UserRole {
     NORMAL("ROLE_NORMAL"),
-    ADMIN("ROLE_ADMIN"),
-    GUARDIAN("ROLE_GUARDIAN");
+    ADMIN("ROLE_ADMIN");
 
     // 역할을 가져올 수 있는 getter 메서드
     private final String role;

@@ -35,8 +35,7 @@ public class UserService {
             request.getUsername(),
             passwordEncoder.encode(request.getPassword()),
             request.getPhoneNumber(),
-            request.getRole(),
-            request.getGuardianCode()
+            request.getRole()
         );
 
         this.userRepository.save(user);

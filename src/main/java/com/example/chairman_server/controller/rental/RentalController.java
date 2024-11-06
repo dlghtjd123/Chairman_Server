@@ -64,7 +64,7 @@ public class RentalController {
                 .orElseThrow(() -> new IllegalArgumentException("대여 기록을 찾을 수 없습니다."));
 
         // 이미 반납된 경우 예외 처리
-        if (rental.getStatus() == RentalStatus.RETURNED) {
+        if ( rental.getStatus() == RentalStatus.RETURNED) {
             throw new IllegalStateException("이미 반납된 대여입니다.");
         }
 

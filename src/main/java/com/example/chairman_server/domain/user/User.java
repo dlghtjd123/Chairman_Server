@@ -36,17 +36,14 @@ public class User {
 
     private String address;
 
-    private String guardianCode = "0"; // Default setting
-
     public User() {
-        // Default constructor
     }
 
-    public User(String username, String password, String phoneNumber, UserRole role, String guardianCode) {
+
+    public User(String username, String password, String phoneNumber, UserRole role) {
         this.username = username;
         this.password = password;
         this.phoneNumber = phoneNumber;
         this.role = role;
-        this.guardianCode = guardianCode;
     }
 }

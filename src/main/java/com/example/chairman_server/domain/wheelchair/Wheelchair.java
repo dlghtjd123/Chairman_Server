@@ -28,19 +28,13 @@ public class Wheelchair {
     @Column(nullable = false)
     private WheelchairType type;
 
-    @Embedded
-    @Column(nullable = true)
-    private Location location = new Location(0, 0); // TODO => POINT 타입을 String으로 매핑
-    
-
     @OneToMany(mappedBy = "wheelchair", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonBackReference
     private List<Rental> rentals = new ArrayList<>();
 
-    public Wheelchair(WheelchairStatus status, WheelchairType type, Location location) {
+    public Wheelchair(WheelchairStatus status, WheelchairType type) {
         this.status = status;
         this.type = type;
-        this.location = location;
     }
 
 

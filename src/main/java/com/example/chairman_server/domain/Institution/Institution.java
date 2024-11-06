@@ -16,11 +16,11 @@ public class Institution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String Name;
+
     private String TelNumber;
 
     @Column(unique = true, nullable = false)
     private String institutionCode; // 공공기관 고유 코드
 
-
-    // 필요 시 다른 정보 추가
 }

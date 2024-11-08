@@ -54,9 +54,9 @@ public class RentalController {
 
     @PutMapping("/return")
     @Transactional
-    public Rental returnWheelchair(@RequestParam String username) {
+    public Rental returnWheelchair(@RequestParam String email) {
         // 로그인한 유저 정보 가져오기
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
         // 해당 사용자의 현재 대여 정보 가져오기
@@ -88,7 +88,7 @@ public class RentalController {
         String username;
 
         try {
-            username = jwtUtil.extractUsername(token); // JWT에서 사용자 이름 추출
+            username = jwtUtil.extractEmail(token); // JWT에서 사용자 이름 추출
         } catch (Exception e) {
             // JWT 처리 중 오류 발생 시
             System.out.println("JWT 처리 중 오류 발생: " + e.getMessage());

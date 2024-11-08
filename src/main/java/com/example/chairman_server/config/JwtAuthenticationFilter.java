@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (token != null && token.startsWith("Bearer ")) {
             String jwtToken = token.substring(7); // "Bearer " 제거
-            String username = jwtUtil.extractUsername(jwtToken); // 사용자 이름 추출
+            String username = jwtUtil.extractEmail(jwtToken); // 사용자 이름 추출
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);

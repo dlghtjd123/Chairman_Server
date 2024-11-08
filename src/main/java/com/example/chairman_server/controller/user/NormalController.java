@@ -46,7 +46,7 @@ public class NormalController {
         System.out.println("Return Date: " + rentRequest.getReturnDate());
 
         String token = authorizationHeader.substring(7); // "Bearer " 제거
-        String username = jwtUtil.extractUsername(token); // JWT에서 사용자 이름 추출
+        String username = jwtUtil.extractEmail(token); // JWT에서 사용자 이름 추출
         LocalDateTime returnDateTime = LocalDateTime.parse(rentRequest.getReturnDate());
         
         Rental rental = rentalService.rentWheelchair(username, rentRequest.getWheelchairType(), returnDateTime);
@@ -62,7 +62,7 @@ public class NormalController {
         String username;
     
         try {
-            username = jwtUtil.extractUsername(token); // JWT에서 사용자 이름 추출
+            username = jwtUtil.extractEmail(token); // JWT에서 사용자 이름 추출
         } catch (Exception e) {
             // JWT 처리 중 오류 발생 시
             System.out.println("JWT 처리 중 오류 발생: " + e.getMessage());

@@ -12,7 +12,7 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "userId") // Identity-based reference handling
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "userId")
 @Table(name = "users")
 public class User {
     @Id
@@ -20,10 +20,10 @@ public class User {
     private Long userId;
 
     @OneToMany(mappedBy = "user")
-    private List<Rental> rentals;  // No @JsonManagedReference needed
+    private List<Rental> rentals;
 
     @Column(nullable = false, unique = true)
-    private String username;
+    private String email;
 
     @Column(nullable = false)
     private String password;
@@ -36,14 +36,17 @@ public class User {
 
     private String address;
 
+    private String name;
+
     public User() {
     }
 
-
-    public User(String username, String password, String phoneNumber, UserRole role) {
-        this.username = username;
+    public User(String email, String password, String phoneNumber, String name, String address, UserRole role) {
+        this.email = email;
         this.password = password;
         this.phoneNumber = phoneNumber;
+        this.name = name;
+        this.address = address;
         this.role = role;
     }
 }

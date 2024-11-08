@@ -23,7 +23,7 @@ public class JwtUtil {
 
     @Value("${jwt.secret}")
     private String secret;
-    
+
     private SecretKey key;
 
     private final UserRepository userRepository;
@@ -35,17 +35,19 @@ public class JwtUtil {
     }
 
     // 토큰 생성 메서드
-    public String generateToken(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+    public String generateToken(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getUserId());
-        claims.put("username", user.getUsername());
+        claims.put("email", user.getEmail());
         claims.put("role", user.getRole());
         claims.put("phoneNumber", user.getPhoneNumber());
+
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10시간 유효
                 .signWith(key, SignatureAlgorithm.HS256)  // 동일한 key를 사용해 서명
@@ -56,11 +58,11 @@ public class JwtUtil {
         Claims claims = extractAllClaims(token);
         return claims.get("userId", Long.class); // userId를 반환
     }
-    
+
     // 토큰 검증 메서드
     public boolean validateToken(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        String email = extractEmail(token);
+        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
     public boolean validateToken(String token) {
@@ -72,8 +74,8 @@ public class JwtUtil {
         }
     }
 
-    // 사용자 이름 추출
-    public String extractUsername(String token) {
+    // 이메일 추출
+    public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
@@ -88,25 +90,19 @@ public class JwtUtil {
     }
 
     public User getUserFromToken(String token) {
-
         // Claims 객체에서 JWT 정보를 파싱
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key) // 서명 검증을 위한 비밀 키 설정
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        
+        Claims claims = extractAllClaims(token);
+
         // Claims에서 필요한 정보 추출
         Long userId = claims.get("userId", Long.class);
-        String username = claims.getSubject();
-        
+        String email = claims.getSubject();
+
         // 사용자 객체 생성 후 반환
         User user = new User();
         user.setUserId(userId);
-        user.setUsername(username);
+        user.setEmail(email);
         // 필요한 다른 필드도 설정
-        
+
         return user;
     }
-
 }

@@ -35,7 +35,6 @@ public class UserController {
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Validation errors occurred");
         }
-
         try {
             userService.create(userCreateRequest);
             return ResponseEntity.status(HttpStatus.CREATED).body("User created successfully");
@@ -80,14 +79,12 @@ public class UserController {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No token provided, logout failed");
     }
-        
+
     @GetMapping("/current")
     public User getCurrentUser(@RequestHeader("Authorization") String token) {
-        // Bearer 토큰에서 JWT 부분만 분리
-        String jwt = token.substring(7); // "Bearer " 이후 부분 추출
-        Long userId = jwtUtil.getUserIdFromToken(jwt); // JWT에서 사용자 ID 추출
-        User user = userService.getCurrentUser(userId); // User 정보와 대여 정보 조회
-        return user; // 현재 사용자 정보 반환
+        String jwt = token.substring(7);
+        String email = jwtUtil.extractEmail(jwt); // JWT에서 이메일 추출
+        return userService.getCurrentUser(email);
     }
 
 
@@ -101,7 +98,7 @@ public class UserController {
             try {
                 // JWT가 유효한지 확인
                 if (jwtUtil.validateToken(token)) {
-                    String username = jwtUtil.extractUsername(token);
+                    String username = jwtUtil.extractEmail(token);
                     return ResponseEntity.ok("User authenticated: " + username);
                 } else {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT Token");

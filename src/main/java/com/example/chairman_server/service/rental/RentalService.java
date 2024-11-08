@@ -32,9 +32,9 @@ public class RentalService {
 
     //대여
     @Transactional
-    public Rental rentWheelchair(String username, WheelchairType wheelchairType, LocalDateTime returnDate) {
+    public Rental rentWheelchair(String email, WheelchairType wheelchairType, LocalDateTime returnDate) {
         // 로그인한 유저 정보 가져오기
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
         // 유저가 대여한 휠체어가 이미 있는 경우 대여를 막음
@@ -63,9 +63,9 @@ public class RentalService {
 
     //반납
     @Transactional
-    public Rental returnWheelchair(String username) {
+    public Rental returnWheelchair(String email) {
         // 로그인한 유저 정보 가져오기
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
         // 해당 사용자의 현재 대여 정보 가져오기
@@ -126,9 +126,9 @@ public class RentalService {
 
     //대여 취소
     @Transactional
-    public Rental cancelWheelchair(String username) {
+    public Rental cancelWheelchair(String email) {
         // 로그인한 유저 정보 가져오기
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
         // 해당 사용자의 현재 대여 정보 가져오기

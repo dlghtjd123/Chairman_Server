@@ -1,6 +1,5 @@
 package com.example.chairman_server.dto.user;
 
-import com.example.chairman_server.domain.user.UserRole;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -9,27 +8,27 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
 public class UserCreateRequest {
 
-    @Size(min = 3, max = 25)
-    @NotEmpty(message = "사용자ID는 필수항목입니다.")
-    private String username;
-    
+    @Size(min = 3, max = 50)
+    @NotEmpty(message = "이메일은 필수항목입니다.")
+    private String email;
+
     @NotEmpty(message = "비밀번호는 필수항목입니다.")
     private String password;
+
+    @NotEmpty(message = "이름은 필수항목입니다.")
+    private String name;
 
     @NotEmpty(message = "전화번호는 필수항목입니다.")
     private String phoneNumber;
 
-    @NotNull(message = "사용자 역할은 필수항목입니다.")
-    private UserRole role;
+    private String address;
 
-    private String guardianCode;    // 보호자 모드일 경우 보호자 코드를 입력 (optional)
-
-    
+    @NotNull(message = "관리자 여부는 필수항목입니다.")
+    private boolean isAdmin;  // 관리자 모드 여부 추가
 }

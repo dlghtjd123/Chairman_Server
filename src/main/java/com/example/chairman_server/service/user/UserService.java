@@ -46,14 +46,15 @@ public class UserService {
     }
 
     @Transactional
-    public Authentication authenticate(LoginRequest loginRequest) {
+    public Authentication authenticate(String email, String password) {
         // UsernamePasswordAuthenticationToken을 사용하여 이메일로 인증 시도
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+                new UsernamePasswordAuthenticationToken(email, password)
         );
         System.out.println("Authentication: " + authentication.isAuthenticated());
         return authentication;
     }
+
 
     public Optional<User> findByEmailWithRentals(String email) {
         return userRepository.findByEmailWithRentals(email);

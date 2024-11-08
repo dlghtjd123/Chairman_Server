@@ -51,24 +51,27 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password) {
         try {
             // 로그인 인증 처리
-            Authentication authentication = userService.authenticate(loginRequest);
+            Authentication authentication = userService.authenticate(email, password);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            
+
             // JWT 토큰 생성
             String token = jwtUtil.generateToken(userDetails.getUsername());
-    
-            // 여기서 올바르게 JWT 토큰을 반환해야 함
-            System.out.println("Login successful, returning token: " + token);  // 디버깅용 로그 추가
-            return ResponseEntity.ok(Collections.singletonMap("token", token));  // 응답에 토큰 포함
+
+            // 디버깅용 로그
+            System.out.println("Login successful, returning token: " + token);
+
+            // 응답에 토큰 포함
+            return ResponseEntity.ok(Collections.singletonMap("token", token));
         } catch (Exception e) {
             // 예외 발생 시 UNAUTHORIZED 반환
-            System.out.println("Login failed due to: " + e.getMessage());  // 예외 메시지 출력
+            System.out.println("Login failed due to: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
         }
     }
+
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {

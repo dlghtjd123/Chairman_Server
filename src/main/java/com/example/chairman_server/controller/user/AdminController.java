@@ -1,7 +1,9 @@
 package com.example.chairman_server.controller.user;
 
+import com.example.chairman_server.repository.Institution.InstitutionRepository;
 import com.example.chairman_server.service.user.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +15,16 @@ public class AdminController {
 
     @Autowired
     private AdminService adminService;
+    @Autowired
+    private InstitutionRepository institutionRepository;
+
+    @PostMapping("/login")
+    public ResponseEntity<?> adminLogin(@RequestParam String code) {
+        // 입력된 코드로 기관을 찾음
+        return institutionRepository.findByInstitutionCode(code)
+                .map(institution -> ResponseEntity.ok("관리자 로그인 성공"))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("관리자 코드가 올바르지 않습니다."));
+    }
 
     // 관리자 페이지 환영 메시지
     @GetMapping

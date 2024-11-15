@@ -16,7 +16,10 @@ public interface WheelchairRepository extends JpaRepository<Wheelchair, Long> {
 
     int countByStatus(WheelchairStatus status);
 
-    Optional<Wheelchair> findFirstByTypeAndStatus(WheelchairType type, WheelchairStatus status);
+    Optional<Wheelchair> findFirstByInstitutionInstitutionCodeAndTypeAndStatus(Long institutionCode, WheelchairType type, WheelchairStatus status);
+
 
     List<Wheelchair> findByStatus(WheelchairStatus status);
+
+    List<Wheelchair> findAllByInstitutionInstitutionCode(Long institutionCode);
 }

@@ -1,5 +1,6 @@
 package com.example.chairman_server.domain.wheelchair;
 
+import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.domain.rental.Rental;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
@@ -31,6 +32,10 @@ public class Wheelchair {
     @OneToMany(mappedBy = "wheelchair", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonBackReference
     private List<Rental> rentals = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "INSTITUTION_CODE", nullable = false)
+    private Institution institution;
 
     public Wheelchair(WheelchairStatus status, WheelchairType type) {
         this.status = status;

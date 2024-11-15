@@ -35,9 +35,9 @@ public class UserSecurityService implements UserDetailsService {  // UserDetails
         if (user.getRole().equals(UserRole.ADMIN)) {
             // 관리자 권한 부여
             authorities.add(new SimpleGrantedAuthority(UserRole.ADMIN.name()));
-        } else if (user.getRole().equals(UserRole.NORMAL)) {
+        } else if (user.getRole().equals(UserRole.USER)) {
             // 일반 사용자 권한 부여
-            authorities.add(new SimpleGrantedAuthority(UserRole.NORMAL.name()));
+            authorities.add(new SimpleGrantedAuthority(UserRole.USER.name()));
         }
 
         // Spring Security의 UserDetails를 반환하여 인증 시스템에서 사용할 수 있도록 함

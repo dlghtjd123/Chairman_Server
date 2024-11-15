@@ -6,6 +6,7 @@ import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.domain.wheelchair.WheelchairType;
+import com.example.chairman_server.repository.Institution.InstitutionRepository;
 import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.user.UserRepository;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
@@ -24,6 +25,7 @@ public class RentalService {
     private final RentalRepository rentalRepository;
     private final WheelchairRepository wheelchairRepository;
     private final UserRepository userRepository;
+    private final InstitutionRepository institutionRepository;
 
     // 대여 코드 생성
     private String generateRentalCode() {
@@ -32,7 +34,7 @@ public class RentalService {
 
     //대여
     @Transactional
-    public Rental rentWheelchair(String email, WheelchairType wheelchairType, LocalDateTime returnDate) {
+    public Rental rentWheelchair(Long institutionCode, String email, WheelchairType wheelchairType, LocalDateTime rentalDate, LocalDateTime returnDate) {
         // 로그인한 유저 정보 가져오기
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
@@ -48,7 +50,7 @@ public class RentalService {
         }
 
         // 선택한 타입의 대여 가능한 휠체어 중 하나 가져오기
-        Wheelchair wheelchair = wheelchairRepository.findFirstByTypeAndStatus(wheelchairType, WheelchairStatus.AVAILABLE)
+        Wheelchair wheelchair = wheelchairRepository.findFirstByInstitutionInstitutionCodeAndTypeAndStatus(institutionCode, wheelchairType, WheelchairStatus.AVAILABLE)
                 .orElseThrow(() -> new IllegalArgumentException("대여 가능한 휠체어가 없습니다."));
 
         // 대여 정보 생성 및 저장
@@ -61,9 +63,11 @@ public class RentalService {
         return rentalRepository.save(rental);
     }
 
+
+
     //반납
     @Transactional
-    public Rental returnWheelchair(String email) {
+    public Rental returnWheelchair(Long institutionCode, String email) {
         // 로그인한 유저 정보 가져오기
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));

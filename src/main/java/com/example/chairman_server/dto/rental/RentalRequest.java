@@ -8,10 +8,14 @@ import lombok.Setter;
 @Getter
 public class RentalRequest {
 
-    private String username;
-    @Setter
+    private Long institutionCode;
+
+    private String email;
+
     private WheelchairType wheelchairType;
-    @Setter
+
+    private String rentalDate;
+
     private String returnDate; // ISO 형식의 날짜
 
 }

@@ -1,63 +1,60 @@
 package com.example.chairman_server.service.user;
 
+import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.domain.user.User;
-import com.example.chairman_server.domain.user.UserRole;
-import com.example.chairman_server.dto.user.LoginRequest;
-import com.example.chairman_server.dto.user.UserCreateRequest;
+import com.example.chairman_server.dto.Institution.InstitutionData;
+import com.example.chairman_server.repository.Institution.InstitutionRepository;
 import com.example.chairman_server.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
-
-// 공통 로직 회원가입 같은 것들 모음
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
+@Transactional
 @Service
 public class UserService {
-        
+
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
+    private final InstitutionRepository institutionRepository;  // InstitutionRepository 주입 추가
 
-    @Transactional
-    public User getCurrentUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+    public User getUser(Long id) {
+        Optional<User> user = this.userRepository.findById(id);
+        if (user.isPresent()) {
+            return user.get();
+        } else {
+            throw new IllegalArgumentException("없는 유저 입니다.");
+        }
     }
 
-
-    public User create(UserCreateRequest request) {
-        User user = new User(
-                request.getEmail(),
-                passwordEncoder.encode(request.getPassword()),
-                request.getPhoneNumber(),
-                request.getName(),  // name 필드를 포함하여 생성자 호출
-                request.getAddress(),
-                request.isAdmin() ? UserRole.ADMIN : UserRole.NORMAL
+    // 특정 기관의 대시보드 데이터 가져오기
+    public InstitutionData getInstitutionData(Long institutionId) {
+        Institution institution = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new IllegalArgumentException("기관을 찾을 수 없습니다."));
+        return new InstitutionData(
+                institution.getInstitution_Id(),
+                institution.getName(),
+                institution.getTelNumber(),
+                institution.getInstitutionCode()
         );
-        this.userRepository.save(user);
-        return user;
     }
 
-    @Transactional
-    public Authentication authenticate(String email, String password) {
-        // UsernamePasswordAuthenticationToken을 사용하여 이메일로 인증 시도
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password)
-        );
-        System.out.println("Authentication: " + authentication.isAuthenticated());
-        return authentication;
+    // 모든 공공기관 조회
+    public List<InstitutionData> getAllInstitutions() {
+        List<Institution> institutions = institutionRepository.findAll();
+        return institutions.stream()
+                .map(institution -> new InstitutionData(
+                        institution.getInstitution_Id(),
+                        institution.getName(),
+                        institution.getTelNumber(),
+                        institution.getInstitutionCode()))
+                .collect(Collectors.toList());
     }
 
-
-    public Optional<User> findByEmailWithRentals(String email) {
-        return userRepository.findByEmailWithRentals(email);
+    public void clear() {
+        userRepository.deleteAll();
     }
-
 }

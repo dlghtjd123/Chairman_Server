@@ -35,7 +35,7 @@ public class RentalController {
     //대여 요청 메서드
     @PostMapping("/rent")
     public ResponseEntity<Rental> rentWheelchair(@RequestBody RentalRequest rentalRequest) {
-        Rental rental = rentalService.rentWheelchair(rentalRequest.getUsername(), rentalRequest.getWheelchairType(), LocalDateTime.parse(rentalRequest.getReturnDate()));
+        Rental rental = rentalService.rentWheelchair(rentalRequest.getInstitutionCode(),rentalRequest.getEmail(), rentalRequest.getWheelchairType(),LocalDateTime.parse(rentalRequest.getRentalDate()) ,LocalDateTime.parse(rentalRequest.getReturnDate()));
         return ResponseEntity.ok(rental);
     }
 

@@ -1,125 +1,104 @@
 package com.example.chairman_server.controller.user;
 
 import com.example.chairman_server.config.JwtUtil;
-import com.example.chairman_server.domain.user.User;
-import com.example.chairman_server.dto.user.LoginRequest;
-import com.example.chairman_server.dto.user.UserCreateRequest;
+import com.example.chairman_server.domain.rental.Rental;
+import com.example.chairman_server.domain.wheelchair.Wheelchair;
+import com.example.chairman_server.domain.wheelchair.WheelchairType;
+import com.example.chairman_server.dto.Institution.InstitutionData;
+import com.example.chairman_server.dto.rental.RentalRequest;
+import com.example.chairman_server.service.rental.RentalService;
+import com.example.chairman_server.service.user.NormalService;
 import com.example.chairman_server.service.user.UserService;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/user")
 public class UserController {
 
+    private final RentalService rentalService;
     private final UserService userService;
     private final JwtUtil jwtUtil;
 
-    // 회원가입 처리
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody @Valid UserCreateRequest userCreateRequest, BindingResult bindingResult) {
-        if (bindingResult.hasErrors()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Validation errors occurred");
-        }
+    // 일반 사용자 페이지 환영 메시지
+    @GetMapping
+    public ResponseEntity<String> normalPage() {
+        return ResponseEntity.ok("Welcome to the normal user page");
+    }
+
+    // 대여 폼 보여주기 (특정 공공기관의 휠체어 종류 반환)
+    @GetMapping("/{institutionCode}/rent")
+    public ResponseEntity<List<WheelchairType>> showRentForm(@PathVariable String institutionCode) {
+        // institutionCode를 사용하여 필요한 데이터를 조회할 수 있습니다.
+        return ResponseEntity.ok(Arrays.asList(WheelchairType.values()));
+    }
+
+    // 특정 공공기관에서의 휠체어 대여 처리
+    @PostMapping("/{institutionCode}/rent")
+    public ResponseEntity<Rental> rentWheelchair(
+            @PathVariable Long institutionCode, // 공공기관 코드
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody RentalRequest rentRequest
+    ) {
+        System.out.println("Institution Code: " + institutionCode);
+        System.out.println("Authorization Header: " + authorizationHeader);
+        System.out.println("Wheelchair Type: " + rentRequest.getWheelchairType());
+        System.out.println("Return Date: " + rentRequest.getReturnDate());
+
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
+        String username = jwtUtil.extractEmail(token); // JWT에서 사용자 이름 추출
+        LocalDateTime returnDateTime = LocalDateTime.parse(rentRequest.getReturnDate());
+        LocalDateTime rentalDateTime = LocalDateTime.parse(rentRequest.getRentalDate());
+
+        Rental rental = rentalService.rentWheelchair(institutionCode, username, rentRequest.getWheelchairType(), rentalDateTime, returnDateTime);
+        return ResponseEntity.status(HttpStatus.CREATED).body(rental);
+    }
+
+    // 특정 공공기관에서의 휠체어 반납 처리
+    @PostMapping("/{institutionCode}/return")
+    public ResponseEntity<Rental> returnWheelchair(
+            @PathVariable Long institutionCode,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
+        String email;
+
         try {
-            userService.create(userCreateRequest);
-            return ResponseEntity.status(HttpStatus.CREATED).body("User created successfully");
-        } catch (DataIntegrityViolationException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User already exists");
+            email = jwtUtil.extractEmail(token); // JWT에서 사용자 이메일 추출
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Signup failed");
+            System.out.println("JWT 처리 중 오류 발생: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-    }
 
-    @GetMapping("/login")
-    public ResponseEntity<String> login() {
-        return ResponseEntity.ok("Login page placeholder");
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password) {
         try {
-            // 로그인 인증 처리
-            Authentication authentication = userService.authenticate(email, password);
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-            // JWT 토큰 생성
-            String token = jwtUtil.generateToken(userDetails.getUsername());
-
-            // 디버깅용 로그
-            System.out.println("Login successful, returning token: " + token);
-
-            // 응답에 토큰 포함
-            return ResponseEntity.ok(Collections.singletonMap("token", token));
-        } catch (Exception e) {
-            // 예외 발생 시 UNAUTHORIZED 반환
-            System.out.println("Login failed due to: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
+            Rental rental = rentalService.returnWheelchair(institutionCode, email);
+            return ResponseEntity.ok(rental);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 대여 기록을 찾지 못했을 경우
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // 이미 반납된 경우
         }
     }
 
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        String authorizationHeader = request.getHeader("Authorization");
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            // 로그아웃 처리 (JWT는 상태 저장 없이, 클라이언트에서 삭제 처리)
-            return ResponseEntity.ok("Logged out successfully");
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No token provided, logout failed");
+    // 모든 공공기관 목록 조회
+    @GetMapping("/institutions")
+    public ResponseEntity<List<InstitutionData>> getAllInstitutions() {
+        List<InstitutionData> institutions = userService.getAllInstitutions();
+        return ResponseEntity.ok(institutions);
     }
 
-    @GetMapping("/current")
-    public User getCurrentUser(@RequestHeader("Authorization") String token) {
-        String jwt = token.substring(7);
-        String email = jwtUtil.extractEmail(jwt); // JWT에서 이메일 추출
-        return userService.getCurrentUser(email);
-    }
-
-
-    @GetMapping("/authStatus")
-    public ResponseEntity<?> getAuthStatus(HttpServletRequest request) {
-        String authorizationHeader = request.getHeader("Authorization");
-        
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            String token = authorizationHeader.substring(7);
-            
-            try {
-                // JWT가 유효한지 확인
-                if (jwtUtil.validateToken(token)) {
-                    String username = jwtUtil.extractEmail(token);
-                    return ResponseEntity.ok("User authenticated: " + username);
-                } else {
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT Token");
-                }
-            } catch (MalformedJwtException e) {
-                // 잘못된 JWT 형식에 대한 처리
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Malformed JWT Token");
-            } catch (ExpiredJwtException e) {
-                // 만료된 JWT에 대한 처리
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Expired JWT Token");
-            } catch (JwtException e) {
-                // 기타 JWT 관련 에러에 대한 처리
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("JWT Token error");
-            }
-        }
-
-        // Authorization 헤더가 없는 경우
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authorization header missing");
+    // 특정 공공기관의 대시보드 조회
+    @GetMapping("/institutions/{institutionCode}/dashboard")
+    public ResponseEntity<InstitutionData> getInstitutionDashboard(@PathVariable Long institutionCode) {
+        InstitutionData institutionData = userService.getInstitutionData(institutionCode);
+        return ResponseEntity.ok(institutionData);
     }
 
 }

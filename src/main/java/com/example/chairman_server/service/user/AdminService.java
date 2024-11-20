@@ -85,7 +85,7 @@ public class AdminService {
         Map<String, Long> statusCounts = new HashMap<>();
         statusCounts.put("AVAILABLE", wheelchairRepository.countByStatus("AVAILABLE"));
         statusCounts.put("RENTED", wheelchairRepository.countByStatus("RENTED"));
-        statusCounts.put("DAMAGED", wheelchairRepository.countByStatus("DAMAGED"));
+        statusCounts.put("BROKEN", wheelchairRepository.countByStatus("BROKEN"));
         return statusCounts;
     }
 
@@ -93,4 +93,11 @@ public class AdminService {
     public List<Rental> getAllRentals() {
         return rentalRepository.findAll();
     }
+
+    // InstitutionCode로 Institution 조회
+    public Institution findInstitutionByCode(Long institutionCode) {
+        return institutionRepository.findByInstitutionCode(institutionCode)
+                .orElseThrow(() -> new IllegalArgumentException("기관을 찾을 수 없습니다. institutionCode: " + institutionCode));
+    }
+
 }

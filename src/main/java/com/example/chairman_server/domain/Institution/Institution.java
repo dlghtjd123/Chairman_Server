@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -16,12 +17,18 @@ import java.util.List;
 public class Institution {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long institution_Id; // PRIMARY KEY and AUTO_INCREMENT
-
-    private String name;
-    private String telNumber;
+    @Column(name = "institution_id")
+    private Long institutionId;
 
     @Column(name = "institution_code", unique = true, nullable = false)
     private Long institutionCode;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(name = "tel_number")
+    private String telNumber;
 }
+
+
 

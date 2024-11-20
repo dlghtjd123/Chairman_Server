@@ -35,7 +35,7 @@ public class UserService {
         Institution institution = institutionRepository.findById(institutionId)
                 .orElseThrow(() -> new IllegalArgumentException("기관을 찾을 수 없습니다."));
         return new InstitutionData(
-                institution.getInstitution_Id(),
+                institution.getInstitutionId(),
                 institution.getName(),
                 institution.getTelNumber(),
                 institution.getInstitutionCode()
@@ -47,7 +47,7 @@ public class UserService {
         List<Institution> institutions = institutionRepository.findAll();
         return institutions.stream()
                 .map(institution -> new InstitutionData(
-                        institution.getInstitution_Id(),
+                        institution.getInstitutionId(),
                         institution.getName(),
                         institution.getTelNumber(),
                         institution.getInstitutionCode()))

@@ -3,15 +3,17 @@ package com.example.chairman_server.controller.user;
 import com.example.chairman_server.config.JwtUtil;
 import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
-import com.example.chairman_server.dto.Institution.InstitutionData;
+import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
+import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
 import com.example.chairman_server.dto.user.InstitutionLoginResponse;
-import com.example.chairman_server.repository.Institution.InstitutionRepository;
 import com.example.chairman_server.service.user.AdminService;
+import com.example.chairman_server.service.wheelchair.WheelchairService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +23,8 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
-    private final InstitutionRepository institutionRepository;
+    private final WheelchairService wheelchairService;
+    private final WheelchairRepository wheelchairRepository;
     private final JwtUtil jwtUtil;
 
     // 관리자 로그인
@@ -57,10 +60,87 @@ public class AdminController {
         return ResponseEntity.ok("Rental rejected successfully.");
     }
 
-    // 휠체어 상태 통계 조회
-    @GetMapping("/{institutionCode}/rentals")
-    public ResponseEntity<Map<String, Long>> getWheelchairStatusCounts(@PathVariable String institutionCode) {
-        Map<String, Long> statusCounts = adminService.getWheelchairStatusCounts();
-        return ResponseEntity.ok(statusCounts);
+    // 특정 Institution의 휠체어 상태별 개수 조회
+    @GetMapping("/{institutionCode}/wheelchair/count")
+    public ResponseEntity<Map<String, Integer>> getWheelchairCountsByInstitution(@PathVariable Long institutionCode) {
+        Institution institution = adminService.findInstitutionByCode(institutionCode); // institutionCode로 Institution 찾기
+        if (institution == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(null);
+        }
+
+        int available = wheelchairRepository.countByInstitutionAndTypeAndStatus(institution, null, WheelchairStatus.AVAILABLE);
+        int broken = wheelchairRepository.countByInstitutionAndTypeAndStatus(institution, null, WheelchairStatus.BROKEN);
+        int rented = wheelchairRepository.countByInstitutionAndTypeAndStatus(institution, null, WheelchairStatus.RENTED);
+        int waiting = wheelchairRepository.countByInstitutionAndTypeAndStatus(institution, null, WheelchairStatus.WAITING);
+
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("available", available);
+        counts.put("broken", broken);
+        counts.put("rented", rented);
+        counts.put("waiting", waiting);
+
+        return ResponseEntity.ok(counts);
+    }
+
+    @GetMapping("/{institutionCode}/wheelchair/list/{status}")
+    public ResponseEntity<List<Wheelchair>> getWheelchairsByInstitutionAndStatus(
+            @PathVariable Long institutionCode, @PathVariable WheelchairStatus status) {
+        Institution institution = adminService.findInstitutionByCode(institutionCode);
+        List<Wheelchair> wheelchairs = wheelchairRepository.findByInstitutionAndTypeAndStatus(institution, null, status);
+        return ResponseEntity.ok(wheelchairs);
+    }
+
+
+    // 전체 휠체어 목록 조회 (관리자)
+    @GetMapping("/{institutionCode}/wheelchair")
+    public ResponseEntity<?> getWheelchairsByInstitution(@PathVariable Long institutionCode,
+                                                         @RequestParam(required = false) String status) {
+        // Institution 조회
+        Institution institution = adminService.findInstitutionByCode(institutionCode);
+        if (institution == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("해당 기관을 찾을 수 없습니다.");
+        }
+
+        List<Wheelchair> wheelchairs;
+
+        try {
+            // Status가 주어지지 않은 경우, 전체 휠체어 조회
+            if (status == null || "ALL".equalsIgnoreCase(status)) {
+                wheelchairs = wheelchairRepository.findAllByInstitutionInstitutionCode(institutionCode);
+            } else {
+                // 특정 상태의 휠체어 조회
+                WheelchairStatus wheelchairStatus = WheelchairStatus.valueOf(status.toUpperCase());
+                wheelchairs = wheelchairRepository.findByInstitutionAndTypeAndStatus(
+                        institution, null, wheelchairStatus
+                );
+            }
+            return ResponseEntity.ok(wheelchairs);
+        } catch (IllegalArgumentException e) {
+            // 잘못된 Status 값 처리
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("잘못된 상태 값입니다. 사용 가능한 값: AVAILABLE, RENTED, BROKEN, WAITING");
+        }
+    }
+
+
+    // 관리자 대시보드: 전체 휠체어 통계 조회
+    @GetMapping("/wheelchair/count")
+    public ResponseEntity<Map<String, Integer>> getGlobalWheelchairCounts() {
+        int total = wheelchairService.countAll();
+        int available = wheelchairService.countByStatus(WheelchairStatus.AVAILABLE);
+        int broken = wheelchairService.countByStatus(WheelchairStatus.BROKEN);
+        int rented = wheelchairService.countByStatus(WheelchairStatus.RENTED);
+        int waiting = wheelchairService.countByStatus(WheelchairStatus.WAITING);
+
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("total", total);
+        counts.put("available", available);
+        counts.put("broken", broken);
+        counts.put("rented", rented);
+        counts.put("waiting", waiting);
+
+        return ResponseEntity.ok(counts);
     }
 }

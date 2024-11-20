@@ -1,7 +1,9 @@
 package com.example.chairman_server.service.wheelchair;
 
+import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
+import com.example.chairman_server.domain.wheelchair.WheelchairType;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,4 +36,14 @@ public class WheelchairService {
     public int countByStatus(WheelchairStatus status) {
         return wheelchairRepository.countByStatus(status);
     }
+
+    // 특정 Institution의 성인용 AVAILABLE 상태 휠체어 개수 조회
+    public int countAvailableAdultWheelchairsByInstitution(Institution institution) {
+        return wheelchairRepository.countByInstitutionAndTypeAndStatus(
+                institution,
+                WheelchairType.ADULT,
+                WheelchairStatus.AVAILABLE
+        );
+    }
+
 }

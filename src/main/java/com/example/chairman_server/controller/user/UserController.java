@@ -14,9 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,8 +31,8 @@ public class UserController {
 
     // 일반 사용자 페이지 환영 메시지
     @GetMapping
-    public ResponseEntity<String> normalPage() {
-        return ResponseEntity.ok("Welcome to the normal user page");
+    public ResponseEntity<String> userPage() {
+        return ResponseEntity.ok("Welcome to the user page");
     }
 
     // 대여 폼 보여주기 (특정 공공기관의 휠체어 종류 반환)
@@ -38,6 +40,23 @@ public class UserController {
     public ResponseEntity<List<WheelchairType>> showRentForm(@PathVariable String institutionCode) {
         // institutionCode를 사용하여 필요한 데이터를 조회할 수 있습니다.
         return ResponseEntity.ok(Arrays.asList(WheelchairType.values()));
+    }
+
+    // 특정 공공기관에서의 대여 가능한 휠체어 개수 조회
+    @GetMapping("/{institutionCode}/available-count")
+    public ResponseEntity<Map<String, Integer>> getAvailableWheelchairCounts(@PathVariable Long institutionCode) {
+        Map<String, Integer> availableCounts = rentalService.getAvailableWheelchairCounts(institutionCode);
+        return ResponseEntity.ok(availableCounts);
+    }
+
+    // 특정 공공기관 및 휠체어 타입에 따른 대여 가능한 날짜 조회
+    @GetMapping("/{institutionCode}/{wheelchairType}/available-dates")
+    public ResponseEntity<List<LocalDate>> getAvailableDates(
+            @PathVariable Long institutionCode,
+            @PathVariable String wheelchairType
+    ) {
+        List<LocalDate> availableDates = rentalService.findAvailableDates(institutionCode, WheelchairType.valueOf(wheelchairType.toUpperCase()));
+        return ResponseEntity.ok(availableDates);
     }
 
     // 특정 공공기관에서의 휠체어 대여 처리
@@ -50,6 +69,7 @@ public class UserController {
         System.out.println("Institution Code: " + institutionCode);
         System.out.println("Authorization Header: " + authorizationHeader);
         System.out.println("Wheelchair Type: " + rentRequest.getWheelchairType());
+        System.out.println("Rental Date: " + rentRequest.getRentalDate());
         System.out.println("Return Date: " + rentRequest.getReturnDate());
 
         String token = authorizationHeader.substring(7); // "Bearer " 제거
@@ -59,32 +79,6 @@ public class UserController {
 
         Rental rental = rentalService.rentWheelchair(institutionCode, username, rentRequest.getWheelchairType(), rentalDateTime, returnDateTime);
         return ResponseEntity.status(HttpStatus.CREATED).body(rental);
-    }
-
-    // 특정 공공기관에서의 휠체어 반납 처리
-    @PostMapping("/{institutionCode}/return")
-    public ResponseEntity<Rental> returnWheelchair(
-            @PathVariable Long institutionCode,
-            @RequestHeader("Authorization") String authorizationHeader
-    ) {
-        String token = authorizationHeader.substring(7); // "Bearer " 제거
-        String email;
-
-        try {
-            email = jwtUtil.extractEmail(token); // JWT에서 사용자 이메일 추출
-        } catch (Exception e) {
-            System.out.println("JWT 처리 중 오류 발생: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        try {
-            Rental rental = rentalService.returnWheelchair(institutionCode, email);
-            return ResponseEntity.ok(rental);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 대여 기록을 찾지 못했을 경우
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // 이미 반납된 경우
-        }
     }
 
     // 모든 공공기관 목록 조회
@@ -100,5 +94,4 @@ public class UserController {
         InstitutionData institutionData = userService.getInstitutionData(institutionCode);
         return ResponseEntity.ok(institutionData);
     }
-
 }

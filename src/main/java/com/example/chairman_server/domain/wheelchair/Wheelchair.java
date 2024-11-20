@@ -34,7 +34,7 @@ public class Wheelchair {
     private List<Rental> rentals = new ArrayList<>();
 
     @ManyToOne
-    @JoinColumn(name = "INSTITUTION_CODE", nullable = false)
+    @JoinColumn(name = "institution_id", nullable = false) // institution_id로 수정
     private Institution institution;
 
     public Wheelchair(WheelchairStatus status, WheelchairType type) {
@@ -42,8 +42,7 @@ public class Wheelchair {
         this.type = type;
     }
 
-
-    public void changeStatus(WheelchairStatus newStatus){
-        status=newStatus;
+    public void changeStatus(WheelchairStatus newStatus) {
+        status = newStatus;
     }
 }

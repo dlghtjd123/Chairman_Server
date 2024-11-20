@@ -11,3 +11,5 @@ public class ChairmanServerApplication {
     }
 
 }
+
+//ngrok start --config "C:\Users\HOOING\.ngrok\ngrok.yml" --all

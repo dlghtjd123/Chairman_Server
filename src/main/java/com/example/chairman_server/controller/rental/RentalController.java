@@ -32,83 +32,61 @@ public class RentalController {
     private final RentalRepository rentalRepository;
     private final UserRepository userRepository;
 
-    //대여 요청 메서드
-    @PostMapping("/rent")
-    public ResponseEntity<Rental> rentWheelchair(@RequestBody RentalRequest rentalRequest) {
-        Rental rental = rentalService.rentWheelchair(rentalRequest.getInstitutionCode(),rentalRequest.getEmail(), rentalRequest.getWheelchairType(),LocalDateTime.parse(rentalRequest.getRentalDate()) ,LocalDateTime.parse(rentalRequest.getReturnDate()));
+    // 휠체어 대여 요청
+    @PostMapping("/{institutionCode}/rent")
+    public ResponseEntity<Rental> rentWheelchair(
+            @PathVariable Long institutionCode,
+            @RequestBody RentalRequest rentalRequest) {
+
+        Rental rental = rentalService.rentWheelchair(
+                institutionCode,
+                rentalRequest.getEmail(),
+                rentalRequest.getWheelchairType(),
+                LocalDateTime.parse(rentalRequest.getRentalDate()),
+                LocalDateTime.parse(rentalRequest.getReturnDate())
+        );
+
         return ResponseEntity.ok(rental);
     }
 
-    // 대여 요청 승인 메서드
-    @PutMapping("/approve/{rentalId}")
-    public ResponseEntity<Rental> approveRental(@PathVariable Long rentalId) {
+    // 대여 요청 승인
+    @PutMapping("/{institutionCode}/approve/{rentalId}")
+    public ResponseEntity<Rental> approveRental(
+            @PathVariable Long institutionCode,
+            @PathVariable Long rentalId) {
+
         Rental rental = rentalService.approveRental(rentalId);
         return ResponseEntity.ok(rental);
     }
-    //대여 요청 거절 메서드
-    @PutMapping("/reject/{rentalId}")
-    public ResponseEntity<Rental> rejectRental(@PathVariable Long rentalId) {
+
+    // 대여 요청 거절
+    @PutMapping("/{institutionCode}/reject/{rentalId}")
+    public ResponseEntity<Rental> rejectRental(
+            @PathVariable Long institutionCode,
+            @PathVariable Long rentalId) {
+
         Rental rental = rentalService.rejectRental(rentalId);
         return ResponseEntity.ok(rental);
     }
 
-    @PutMapping("/return")
-    @Transactional
-    public Rental returnWheelchair(@RequestParam String email) {
-        // 로그인한 유저 정보 가져오기
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
-
-        // 해당 사용자의 현재 대여 정보 가져오기
-        Rental rental = rentalRepository.findCurrentRentalByUser(user)
-                .orElseThrow(() -> new IllegalArgumentException("대여 기록을 찾을 수 없습니다."));
-
-        // 이미 반납된 경우 예외 처리
-        if ( rental.getStatus() == RentalStatus.RETURNED) {
-            throw new IllegalStateException("이미 반납된 대여입니다.");
-        }
-
-        // 대여된 휠체어 상태를 "AVAILABLE"로 변경
-        Wheelchair wheelchair = rental.getWheelchair();
-        wheelchair.changeStatus(WheelchairStatus.AVAILABLE);
-        wheelchairRepository.save(wheelchair);
-
-        // 대여 상태를 "RETURNED"로 변경
-        rental.changeStatus(RentalStatus.RETURNED);
-        return rentalRepository.save(rental);
-    }
-
-    // 휠체어 대여 취소하기
-    @PostMapping("/cancel")
+    // 대여 취소
+    @PostMapping("/{institutionCode}/cancel")
     public ResponseEntity<Rental> cancelWheelchair(
-            @RequestHeader("Authorization") String authorizationHeader
-    ) {
-        System.out.println("Cancel request received");
+            @PathVariable Long institutionCode,
+            @RequestHeader("Authorization") String authorizationHeader) {
+
         String token = authorizationHeader.substring(7); // "Bearer " 제거
-        String username;
+        String email = rentalService.extractEmailFromToken(token);
 
-        try {
-            username = jwtUtil.extractEmail(token); // JWT에서 사용자 이름 추출
-        } catch (Exception e) {
-            // JWT 처리 중 오류 발생 시
-            System.out.println("JWT 처리 중 오류 발생: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        try {
-            Rental rental = rentalService.cancelWheelchair(username);
-            return ResponseEntity.ok(rental);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 대여 기록을 찾지 못했을 경우
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // 이미 반납된 경우
-        }
+        Rental rental = rentalService.cancelWheelchair(email);
+        return ResponseEntity.ok(rental);
     }
 
-    // 대기 중인 대여 목록 조회 메서드
-    @GetMapping("/list")
-    public ResponseEntity<List<Rental>> getWaitingRentals() {
-        List<Rental> rentals = rentalService.getRentalsByStatus(RentalStatus.WAITING);
+    // 대기 중인 대여 요청 목록 조회
+    @GetMapping("/{institutionCode}/list")
+    public ResponseEntity<List<Rental>> getWaitingRentals(@PathVariable Long institutionCode) {
+        List<Rental> rentals = rentalService.getRentalsByStatusAndInstitution(
+                RentalStatus.WAITING, institutionCode);
         return ResponseEntity.ok(rentals);
     }
 

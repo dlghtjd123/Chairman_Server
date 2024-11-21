@@ -51,8 +51,11 @@ public class NormalController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam String email, @RequestParam String password) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
         try {
+            String email = loginRequest.get("email");
+            String password = loginRequest.get("password");
+
             // 로그인 인증 처리
             Authentication authentication = userService.authenticate(email, password);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -63,17 +66,14 @@ public class NormalController {
             // 디버깅용 로그
             System.out.println("Login successful, returning token: " + token);
 
-            // 응답에 토큰 포함
-            return ResponseEntity.ok(Collections.singletonMap("token", token));
+            // 응답에 JWT 토큰 포함 (키 이름 변경: jwtToken)
+            return ResponseEntity.ok(Collections.singletonMap("jwtToken", token));
         } catch (Exception e) {
             // 예외 발생 시 UNAUTHORIZED 반환
             System.out.println("Login failed due to: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Login failed");
         }
     }
-
-
-
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {

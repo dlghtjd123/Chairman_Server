@@ -1,6 +1,7 @@
 package com.example.chairman_server.domain.user;
 
 import com.example.chairman_server.domain.rental.Rental;
+import com.example.chairman_server.domain.rental.RentalStatus;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
@@ -37,6 +38,9 @@ public class User {
     private String address;
 
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    private RentalStatus status = RentalStatus.NORMAL;
 
     public User() {
     }

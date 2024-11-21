@@ -59,6 +59,9 @@ public class RentalService {
                         institution, wheelchairType, WheelchairStatus.AVAILABLE)
                 .orElseThrow(() -> new IllegalArgumentException("대여 가능한 휠체어가 없습니다."));
 
+        // 사용자와 휠체어 연결
+        wheelchair.assignUser(user);
+
         // 대여 생성
         Rental rental = new Rental(user, wheelchair, rentalDate, returnDate,
                 UUID.randomUUID().toString(), RentalStatus.WAITING);
@@ -66,6 +69,10 @@ public class RentalService {
         // 휠체어 상태 변경
         wheelchair.changeStatus(WheelchairStatus.WAITING);
         wheelchairRepository.save(wheelchair);
+
+        // 사용자 상태를 WAITING으로 변경
+        user.setStatus(RentalStatus.WAITING);
+        userRepository.save(user);
 
         return rentalRepository.save(rental);
     }
@@ -107,10 +114,14 @@ public class RentalService {
         Rental rental = rentalRepository.findCurrentRentalByUser(user)
                 .orElseThrow(() -> new IllegalArgumentException("대여 기록을 찾을 수 없습니다."));
 
-        rental.getWheelchair().changeStatus(WheelchairStatus.AVAILABLE);
-        rental.setStatus(RentalStatus.NORMAL);
+        Wheelchair wheelchair = rental.getWheelchair();
+        wheelchair.setStatus(WheelchairStatus.AVAILABLE);
 
-        wheelchairRepository.save(rental.getWheelchair());
+        // 사용자와 휠체어 연결 해제
+        wheelchair.removeUser();
+        wheelchairRepository.save(wheelchair);
+
+        rental.setStatus(RentalStatus.NORMAL);
         return rentalRepository.save(rental);
     }
 

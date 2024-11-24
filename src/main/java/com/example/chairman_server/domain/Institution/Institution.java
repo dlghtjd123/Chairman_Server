@@ -28,6 +28,9 @@ public class Institution {
 
     @Column(name = "tel_number")
     private String telNumber;
+
+    @Column(nullable = false)
+    private String address;
 }
 
 

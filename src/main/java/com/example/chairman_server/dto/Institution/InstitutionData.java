@@ -10,11 +10,13 @@ public class InstitutionData {
     private String name;
     private String telNumber;
     private Long institutionCode;
+    private String address;
 
-    public InstitutionData(Long id, String name, String telNumber, Long institutionCode) {
+    public InstitutionData(Long id, String name, String telNumber, Long institutionCode, String address) {
         this.id = id;
         this.name = name;
         this.telNumber = telNumber;
         this.institutionCode = institutionCode;
+        this.address = address;
     }
 }

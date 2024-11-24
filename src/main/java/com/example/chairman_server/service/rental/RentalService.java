@@ -49,9 +49,9 @@ public class RentalService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
         // 사용자가 이미 대여 중인지 확인
-        boolean isAlreadyRenting = rentalRepository.findByUserAndStatus(user, RentalStatus.ACTIVE).isPresent();
+        boolean isAlreadyRenting = rentalRepository.findCurrentRentalByUser(user).isPresent();
         if (isAlreadyRenting) {
-            throw new IllegalStateException("현재 이미 휠체어를 빌리고 있습니다.");
+            throw new IllegalStateException("사용자가 이미 대여 중입니다.");
         }
 
         // 대여 가능한 휠체어 검색
@@ -64,18 +64,15 @@ public class RentalService {
 
         // 대여 생성
         Rental rental = new Rental(user, wheelchair, rentalDate, returnDate,
-                UUID.randomUUID().toString(), RentalStatus.WAITING);
+                UUID.randomUUID().toString(), RentalStatus.ACTIVE);
 
         // 휠체어 상태 변경
         wheelchair.changeStatus(WheelchairStatus.WAITING);
         wheelchairRepository.save(wheelchair);
 
-        // 사용자 상태를 WAITING으로 변경
-        user.setStatus(RentalStatus.WAITING);
-        userRepository.save(user);
-
         return rentalRepository.save(rental);
     }
+
 
 
 
@@ -105,25 +102,26 @@ public class RentalService {
         return rentalRepository.save(rental);
     }
 
-    // 대여 취소
     @Transactional
-    public Rental cancelWheelchair(String email) {
+    public void cancelWheelchair(String email) {
+        // 유저 확인
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
 
+        // 대여 기록 확인
         Rental rental = rentalRepository.findCurrentRentalByUser(user)
                 .orElseThrow(() -> new IllegalArgumentException("대여 기록을 찾을 수 없습니다."));
 
+        // 휠체어 상태 변경 및 사용자 연결 해제
         Wheelchair wheelchair = rental.getWheelchair();
         wheelchair.setStatus(WheelchairStatus.AVAILABLE);
-
-        // 사용자와 휠체어 연결 해제
         wheelchair.removeUser();
         wheelchairRepository.save(wheelchair);
 
-        rental.setStatus(RentalStatus.NORMAL);
-        return rentalRepository.save(rental);
+        // 대여 기록 삭제
+        rentalRepository.delete(rental);
     }
+
 
     // 대여 상태와 기관 코드에 따라 대여 목록 조회
     @Transactional(readOnly = true)
@@ -154,44 +152,6 @@ public class RentalService {
                 "CHILD", childCount
         );
 
-    }
-
-    @Transactional(readOnly = true)
-    public List<LocalDate> findAvailableDates(Long institutionCode, WheelchairType wheelchairType) {
-        // institutionCode로 Institution 조회
-        Institution institution = institutionRepository.findByInstitutionCode(institutionCode)
-                .orElseThrow(() -> new IllegalArgumentException("기관을 찾을 수 없습니다."));
-
-        // 대여 가능한 휠체어 조회
-        List<Wheelchair> availableWheelchairs = wheelchairRepository.findByInstitutionAndTypeAndStatus(
-                institution, wheelchairType, WheelchairStatus.AVAILABLE);
-
-        // 대여 가능한 날짜를 저장할 Set (중복 제거)
-        Set<LocalDate> availableDates = new HashSet<>();
-
-        for (Wheelchair wheelchair : availableWheelchairs) {
-            // 각 휠체어의 대여 가능한 기간을 계산하여 추가
-            List<Rental> rentals = rentalRepository.findByWheelchairAndStatus(wheelchair, RentalStatus.ACTIVE);
-
-            LocalDate today = LocalDate.now();
-            LocalDate endOfBookingWindow = today.plusMonths(1); // 1개월 뒤까지 대여 가능 날짜 계산
-
-            while (!today.isAfter(endOfBookingWindow)) {
-                LocalDate finalToday = today;
-                boolean isAvailable = rentals.stream().noneMatch(rental ->
-                        (rental.getRentalDate().toLocalDate().isBefore(finalToday.plusDays(1)) &&
-                                rental.getReturnDate().toLocalDate().isAfter(finalToday.minusDays(1)))
-                );
-
-                if (isAvailable) {
-                    availableDates.add(today);
-                }
-                today = today.plusDays(1);
-            }
-        }
-
-        // List로 반환
-        return new ArrayList<>(availableDates);
     }
 
     // JWT에서 이메일 추출

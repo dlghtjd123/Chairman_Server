@@ -1,6 +1,7 @@
 package com.example.chairman_server.controller.rental;
 
 import com.example.chairman_server.config.JwtUtil;
+import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.domain.rental.Rental;
 import com.example.chairman_server.domain.rental.RentalStatus;
 import com.example.chairman_server.domain.user.User;
@@ -28,6 +29,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -81,34 +83,6 @@ public class RentalController {
         }
     }
 
-    @GetMapping("/info")
-    public ResponseEntity<?> getRentalInfo(@RequestHeader("Authorization") String authorizationHeader) {
-        String token = authorizationHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
-        log.info("Fetching rental info for email: " + email);
-
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) {
-            log.info("User not found in the database.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
-        }
-
-        Optional<Rental> rentalOptional = rentalRepository.findCurrentRentalByUser(user);
-        if (rentalOptional.isPresent()) {
-            Rental rental = rentalOptional.get();
-            RentalResponse response = new RentalResponse(
-                    rental.getRentalCode(),
-                    rental.getRentalDate().toString(),
-                    rental.getReturnDate().toString(),
-                    rental.getStatus().name()
-            );
-            return ResponseEntity.ok(response);
-        } else {
-            log.info("No active rentals found for user: " + email);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("현재 대여 내역이 없습니다.");
-        }
-    }
-
 
     // 대여 요청 승인
     @PutMapping("/{institutionCode}/approve/{rentalId}")
@@ -130,17 +104,18 @@ public class RentalController {
         return ResponseEntity.ok(rental);
     }
 
-    // 대여 취소
     @PostMapping("/{institutionCode}/cancel")
-    public ResponseEntity<Rental> cancelWheelchair(
+    public ResponseEntity<?> cancelWheelchair(
             @PathVariable Long institutionCode,
             @RequestHeader("Authorization") String authorizationHeader) {
 
         String token = authorizationHeader.substring(7); // "Bearer " 제거
         String email = rentalService.extractEmailFromToken(token);
 
-        Rental rental = rentalService.cancelWheelchair(email);
-        return ResponseEntity.ok(rental);
+        // 대여 취소 처리
+        rentalService.cancelWheelchair(email);
+
+        return ResponseEntity.ok("대여가 성공적으로 취소되었습니다.");
     }
 
     // 대기 중인 대여 요청 목록 조회
@@ -150,6 +125,42 @@ public class RentalController {
                 RentalStatus.WAITING, institutionCode);
         return ResponseEntity.ok(rentals);
     }
+
+    @GetMapping("/info")
+    public ResponseEntity<?> getRentalInfo(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = authorizationHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
+        }
+
+        Optional<Rental> rentalOptional = rentalRepository.findCurrentRentalByUser(user);
+
+        if (rentalOptional.isPresent()) {
+            Rental rental = rentalOptional.get();
+            Wheelchair wheelchair = rental.getWheelchair();
+            Institution institution = wheelchair.getInstitution();
+
+            RentalResponse response = new RentalResponse();
+            response.setRentalId(rental.getRentalId());
+            response.setRentalDate(rental.getRentalDate().toString());
+            response.setReturnDate(rental.getReturnDate() != null ? rental.getReturnDate().toString() : "반납 예정 없음");
+            response.setStatus(rental.getStatus().name());
+            response.setWheelchairType(wheelchair.getType().name());
+            response.setInstitutionName(institution.getName());
+            response.setInstitutionAddress(institution.getAddress());
+            response.setInstitutionPhone(institution.getTelNumber());
+            response.setInstitutionCode(institution.getInstitutionCode()); // 공공기관 코드 설정
+
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("현재 대여 내역이 없습니다.");
+        }
+    }
+
+
 
     @GetMapping("/api/wheelchairs")
     public ResponseEntity<List<Wheelchair>> getWheelchairsByStatus(@RequestParam("status") String status) {
@@ -162,4 +173,6 @@ public class RentalController {
         }
         return ResponseEntity.ok(wheelchairs);
     }
+
+
 }

@@ -34,44 +34,69 @@ public class AdminService {
         this.wheelchairRepository = wheelchairRepository;
     }
 
-    // 공공기관 코드로 로그인
-    public Institution loginByCode(Long institutionCode) {
-        return institutionRepository.findByInstitutionCode(institutionCode)
+    public Institution loginByCode(Long code) {
+        System.out.println("입력된 기관 코드: " + code); // 입력된 코드 로그 출력
+
+        return institutionRepository.findByInstitutionCode(code)
                 .orElseThrow(() -> new IllegalArgumentException("해당 코드의 기관을 찾을 수 없습니다."));
     }
 
 
-    //요청 승인
-    public Rental approveRental(Long rentalId) {
+    // 요청 승인
+    @Transactional
+    public Rental approveRental(Long rentalId, Long institutionCode) {
+        // rentalId로 대여 요청 조회
         Rental rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid rental ID"));
 
-        // 대여 상태를 ACTIVE로 변경
+        // 요청이 해당 기관 코드에 속하는지 확인
+        if (!rental.getInstitution().getInstitutionCode().equals(institutionCode)) {
+            throw new IllegalArgumentException("Rental does not belong to the given institution");
+        }
+
+        // 상태가 "WAITING"인지 확인
+        if (!rental.getStatus().equals(RentalStatus.WAITING)) {
+            throw new IllegalArgumentException("Only waiting rentals can be approved");
+        }
+
+        // 대여 상태를 "ACTIVE"로 변경
         rental.setStatus(RentalStatus.ACTIVE);
         rentalRepository.save(rental);
 
-        // 휠체어 상태를 RENTED로 변경
+        // 휠체어 상태를 "RENTED"로 변경
         Wheelchair wheelchair = rental.getWheelchair();
         wheelchair.changeStatus(WheelchairStatus.RENTED);
-        wheelchairRepository.save(wheelchair);  // 휠체어 상태 변경을 저장
+        wheelchairRepository.save(wheelchair); // 휠체어 상태 저장
 
         // 로그 추가
-        System.out.println("Rental found: " + rental.getRentalId());
+        System.out.println("Rental approved: " + rental.getRentalId());
 
         return rental;
     }
 
-    //요청 거절
+    // 요청 거절
     @Transactional
-    public Rental rejectRental(Long rentalId) {
-        // rentalId를 사용하여 대여 요청을 조회
+    public Rental rejectRental(Long rentalId, Long institutionCode) {
+        // rentalId로 대여 요청 조회
         Rental rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid rental ID"));
+
+        // 요청이 해당 기관 코드에 속하는지 확인
+        if (!rental.getInstitution().getInstitutionCode().equals(institutionCode)) {
+            throw new IllegalArgumentException("Rental does not belong to the given institution");
+        }
+
+        // 상태가 "WAITING"인지 확인
+        if (!rental.getStatus().equals(RentalStatus.WAITING)) {
+            throw new IllegalArgumentException("Only waiting rentals can be rejected");
+        }
 
         // 휠체어 상태를 "AVAILABLE"로 변경
         Wheelchair wheelchair = rental.getWheelchair();
         wheelchair.setStatus(WheelchairStatus.AVAILABLE);
         wheelchairRepository.save(wheelchair);
+
+        // 대여 요청 삭제
         rentalRepository.delete(rental);
 
         // 로그 추가
@@ -79,6 +104,7 @@ public class AdminService {
 
         return rental;
     }
+
 
     // 휠체어 상태별 통계 조회
     public Map<String, Long> getWheelchairStatusCounts() {

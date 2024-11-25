@@ -64,7 +64,7 @@ public class RentalService {
 
         // 대여 생성
         Rental rental = new Rental(user, wheelchair, rentalDate, returnDate,
-                UUID.randomUUID().toString(), RentalStatus.ACTIVE);
+                UUID.randomUUID().toString(), RentalStatus.WAITING);
 
         // 휠체어 상태 변경
         wheelchair.changeStatus(WheelchairStatus.WAITING);
@@ -72,9 +72,6 @@ public class RentalService {
 
         return rentalRepository.save(rental);
     }
-
-
-
 
     // 대여 승인
     @Transactional

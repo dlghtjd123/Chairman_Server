@@ -121,11 +121,21 @@ public class RentalController {
     // 대기 중인 대여 요청 목록 조회
     @GetMapping("/{institutionCode}/list")
     public ResponseEntity<List<Rental>> getWaitingRentals(@PathVariable Long institutionCode) {
-        List<Rental> rentals = rentalService.getRentalsByStatusAndInstitution(
-                RentalStatus.WAITING, institutionCode);
-        return ResponseEntity.ok(rentals);
+        try {
+            // institutionCode 확인을 위한 로그
+            log.info("받은 institutionCode: {}", institutionCode);
+
+            List<Rental> rentals = rentalService.getRentalsByStatusAndInstitution(
+                    RentalStatus.WAITING, institutionCode);
+            return ResponseEntity.ok(rentals);
+        } catch (Exception e) {
+            log.error("대여 대기 목록 조회 중 오류 발생: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
+
+    //현재 사용자의 대여 정보 조회
     @GetMapping("/info")
     public ResponseEntity<?> getRentalInfo(@RequestHeader("Authorization") String authorizationHeader) {
         String token = authorizationHeader.substring(7);
@@ -160,8 +170,7 @@ public class RentalController {
         }
     }
 
-
-
+    //상태별 휠체어 조회
     @GetMapping("/api/wheelchairs")
     public ResponseEntity<List<Wheelchair>> getWheelchairsByStatus(@RequestParam("status") String status) {
         List<Wheelchair> wheelchairs;

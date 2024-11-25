@@ -51,6 +51,20 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generateTokenWithRole(String email, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", email);
+        claims.put("role", role); // 역할 정보 추가
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(email)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);
@@ -63,6 +77,11 @@ public class JwtUtil {
 
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("role", String.class); // 역할 정보 추출
     }
 
     private Claims extractAllClaims(String token) {

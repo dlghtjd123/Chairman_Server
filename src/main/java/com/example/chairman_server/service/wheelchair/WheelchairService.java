@@ -8,7 +8,9 @@ import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class WheelchairService {
@@ -37,13 +39,23 @@ public class WheelchairService {
         return wheelchairRepository.countByStatus(status);
     }
 
-    // 특정 Institution의 성인용 AVAILABLE 상태 휠체어 개수 조회
-    public int countAvailableAdultWheelchairsByInstitution(Institution institution) {
-        return wheelchairRepository.countByInstitutionAndTypeAndStatus(
-                institution,
-                WheelchairType.ADULT,
-                WheelchairStatus.AVAILABLE
-        );
+    public Map<String, Integer> getGlobalWheelchairCounts() {
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("total", countAll());
+        counts.put("available", countByStatus(WheelchairStatus.AVAILABLE));
+        counts.put("broken", countByStatus(WheelchairStatus.BROKEN));
+        counts.put("rented", countByStatus(WheelchairStatus.RENTED));
+        counts.put("waiting", countByStatus(WheelchairStatus.WAITING));
+        return counts;
     }
 
+    // 특정 기관의 휠체어 상태별 개수 조회 메서드 추가
+    public Map<String, Integer> getWheelchairCountsByInstitution(Institution institution) {
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("available", wheelchairRepository.countByInstitutionAndStatus(institution, WheelchairStatus.AVAILABLE));
+        counts.put("broken", wheelchairRepository.countByInstitutionAndStatus(institution, WheelchairStatus.BROKEN));
+        counts.put("rented", wheelchairRepository.countByInstitutionAndStatus(institution, WheelchairStatus.RENTED));
+        counts.put("waiting", wheelchairRepository.countByInstitutionAndStatus(institution, WheelchairStatus.WAITING));
+        return counts;
+    }
 }

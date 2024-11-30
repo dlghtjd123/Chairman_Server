@@ -8,6 +8,7 @@ import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.domain.wheelchair.WheelchairType;
+import com.example.chairman_server.dto.rental.WaitingRentalResponse;
 import com.example.chairman_server.repository.Institution.InstitutionRepository;
 import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.user.UserRepository;
@@ -17,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -75,29 +75,54 @@ public class RentalService {
 
     // 대여 승인
     @Transactional
-    public Rental approveRental(Long rentalId) {
+    public Rental acceptRental(Long rentalId, Long institutionCode) {
         Rental rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid rental ID"));
 
-        rental.setStatus(RentalStatus.ACTIVE);
-        rental.getWheelchair().changeStatus(WheelchairStatus.RENTED);
+        Wheelchair wheelchair = rental.getWheelchair();
 
-        wheelchairRepository.save(rental.getWheelchair());
-        return rentalRepository.save(rental);
+        // institutionCode 검증
+        if (!wheelchair.getInstitution().getInstitutionCode().equals(institutionCode)) {
+            throw new IllegalArgumentException("Invalid institution code for this rental.");
+        }
+
+        // WheelchairStatus를 ACCEPTED로 변경
+        wheelchair.changeStatus(WheelchairStatus.ACCEPTED);
+
+        // User의 RentalStatus를 ACCEPTED로 변경
+        if (rental.getUser() != null) {
+            User user = rental.getUser();
+            user.setStatus(RentalStatus.ACCEPTED);
+            userRepository.save(user); // User 변경사항 저장
+        }
+
+        rental.setStatus(RentalStatus.ACCEPTED);
+        wheelchairRepository.save(wheelchair); // Wheelchair 변경사항 저장
+        return rentalRepository.save(rental); // Rental 변경사항 저장
     }
 
-    // 대여 거절
     @Transactional
-    public Rental rejectRental(Long rentalId) {
+    public void rejectRental(Long rentalId, Long institutionCode) {
         Rental rental = rentalRepository.findById(rentalId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid rental ID"));
 
-        rental.setStatus(RentalStatus.NORMAL);
-        rental.getWheelchair().changeStatus(WheelchairStatus.AVAILABLE);
+        Wheelchair wheelchair = rental.getWheelchair();
 
-        wheelchairRepository.save(rental.getWheelchair());
-        return rentalRepository.save(rental);
+        // institutionCode 검증
+        if (!wheelchair.getInstitution().getInstitutionCode().equals(institutionCode)) {
+            throw new IllegalArgumentException("Invalid institution code for this rental.");
+        }
+
+        // WheelchairStatus를 AVAILABLE로 복원
+        wheelchair.changeStatus(WheelchairStatus.AVAILABLE);
+        rental.setStatus(RentalStatus.NORMAL);
+        wheelchairRepository.save(wheelchair);
+
+        // Rental 테이블에서 기록 삭제
+        rentalRepository.delete(rental);
     }
+
+
 
     @Transactional
     public void cancelWheelchair(String email) {

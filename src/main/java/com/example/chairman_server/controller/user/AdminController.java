@@ -2,8 +2,8 @@ package com.example.chairman_server.controller.user;
 
 import com.example.chairman_server.config.JwtUtil;
 import com.example.chairman_server.domain.Institution.Institution;
-import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
+import com.example.chairman_server.dto.wheelchair.WheelchairDetailResponse;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
 import com.example.chairman_server.dto.user.InstitutionLoginResponse;
 import com.example.chairman_server.service.user.AdminService;
@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,49 +74,25 @@ public class AdminController {
         }
     }
 
-    // 특정 기관의 휠체어 상태별 개수 조회
-    @GetMapping("/{institutionCode}/wheelchair/count")
-    public ResponseEntity<Map<String, Integer>> getWheelchairCountsByInstitution(@PathVariable Long institutionCode) {
-        try {
-            Institution institution = validateInstitution(institutionCode);
-            Map<String, Integer> counts = wheelchairService.getWheelchairCountsByInstitution(institution);
-            return ResponseEntity.ok(counts);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+    @GetMapping("/{institutionCode}/status-count")
+    public ResponseEntity<Map<String, Long>> getWheelchairStatusCount(@PathVariable Long institutionCode) {
+        Map<String, Long> statusCounts = wheelchairService.getStatusCounts(institutionCode);
+        return ResponseEntity.ok(statusCounts);
     }
 
-    // 특정 상태의 휠체어 목록 조회
-    @GetMapping("/{institutionCode}/wheelchair/list")
-    public ResponseEntity<?> getWheelchairsByInstitution(
+
+    @GetMapping("/{institutionCode}/details")
+    public ResponseEntity<List<WheelchairDetailResponse>> getWheelchairDetails(
             @PathVariable Long institutionCode,
-            @RequestParam(required = false, defaultValue = "ALL") String status) {
+            @RequestParam("status") String status) {
         try {
-            Institution institution = validateInstitution(institutionCode);
-
-            List<Wheelchair> wheelchairs;
-            if ("ALL".equalsIgnoreCase(status)) {
-                wheelchairs = wheelchairRepository.findAllByInstitutionInstitutionCode(institutionCode);
-            } else {
-                WheelchairStatus wheelchairStatus = WheelchairStatus.valueOf(status.toUpperCase());
-                wheelchairs = wheelchairRepository.findByInstitutionAndTypeAndStatus(
-                        institution, null, wheelchairStatus);
-            }
-            return ResponseEntity.ok(wheelchairs);
+            // "ALL" 상태는 Service에서 처리
+            List<WheelchairDetailResponse> details = wheelchairService.getDetailsByStatus(institutionCode, status);
+            return ResponseEntity.ok(details);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("잘못된 상태 값입니다. 사용 가능한 값: AVAILABLE, RENTED, BROKEN, WAITING");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // 상태가 잘못된 경우
         }
     }
 
-    // 전체 휠체어 통계 조회
-    @GetMapping("/wheelchair/count")
-    public ResponseEntity<Map<String, Integer>> getGlobalWheelchairCounts() {
-        try {
-            Map<String, Integer> counts = wheelchairService.getGlobalWheelchairCounts();
-            return ResponseEntity.ok(counts);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
-    }
+
 }

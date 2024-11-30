@@ -1,32 +1,19 @@
 package com.example.chairman_server.controller.user;
 
 import com.example.chairman_server.config.JwtUtil;
-import com.example.chairman_server.domain.rental.Rental;
-import com.example.chairman_server.domain.user.User;
-import com.example.chairman_server.domain.wheelchair.Wheelchair;
-import com.example.chairman_server.domain.wheelchair.WheelchairType;
 import com.example.chairman_server.dto.Institution.InstitutionData;
-import com.example.chairman_server.dto.rental.RentalRequest;
-import com.example.chairman_server.dto.rental.RentalResponse;
-import com.example.chairman_server.dto.user.UserCreateRequest;
 import com.example.chairman_server.dto.user.UserUpdateRequest;
 import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.user.UserRepository;
 import com.example.chairman_server.service.rental.RentalService;
-import com.example.chairman_server.service.user.NormalService;
 import com.example.chairman_server.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @RestController

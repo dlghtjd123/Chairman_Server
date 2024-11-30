@@ -30,7 +30,15 @@ public interface WheelchairRepository extends JpaRepository<Wheelchair, Long> {
     // 특정 Institution, Type, Status 기준으로 휠체어 개수 조회
     int countByInstitutionAndTypeAndStatus(Institution institution, WheelchairType type, WheelchairStatus status);
 
-    // 특정 기관과 상태에 따른 휠체어 개수
+    // 특정 기관의 휠체어 상태별 조회
+    List<Wheelchair> findByInstitutionAndStatus(Institution institution, WheelchairStatus status);
+
+    // 특정 기관의 전체 휠체어 개수 조회
+    int countByInstitution(Institution institution);
+
+    // 특정 기관과 상태의 휠체어 개수 조회
     int countByInstitutionAndStatus(Institution institution, WheelchairStatus status);
 
+    // 특정 기관의 모든 휠체어 검색 (상태 무관)
+    List<Wheelchair> findByInstitution(Institution institution);
 }

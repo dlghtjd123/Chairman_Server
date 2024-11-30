@@ -8,7 +8,8 @@ import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.dto.rental.RentalRequest;
-import com.example.chairman_server.dto.rental.RentalResponse;
+import com.example.chairman_server.dto.rental.UserRentalResponse;
+import com.example.chairman_server.dto.rental.WaitingRentalResponse;
 import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.user.UserRepository;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
@@ -18,18 +19,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.Arrays;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -85,24 +80,35 @@ public class RentalController {
 
 
     // 대여 요청 승인
-    @PutMapping("/{institutionCode}/approve/{rentalId}")
-    public ResponseEntity<Rental> approveRental(
+    @PutMapping("/{institutionCode}/accept/{rentalId}")
+    public ResponseEntity<?> acceptRental(
             @PathVariable Long institutionCode,
             @PathVariable Long rentalId) {
-
-        Rental rental = rentalService.approveRental(rentalId);
-        return ResponseEntity.ok(rental);
+        try {
+            Rental rental = rentalService.acceptRental(rentalId, institutionCode);
+            return ResponseEntity.ok(rental);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("대여 요청 승인 중 오류가 발생했습니다.");
+        }
     }
 
     // 대여 요청 거절
-    @PutMapping("/{institutionCode}/reject/{rentalId}")
-    public ResponseEntity<Rental> rejectRental(
+    @DeleteMapping("/{institutionCode}/reject/{rentalId}")
+    public ResponseEntity<?> rejectRental(
             @PathVariable Long institutionCode,
             @PathVariable Long rentalId) {
-
-        Rental rental = rentalService.rejectRental(rentalId);
-        return ResponseEntity.ok(rental);
+        try {
+            rentalService.rejectRental(rentalId, institutionCode);
+            return ResponseEntity.ok("대여 요청이 거절되었고, 기록이 삭제되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("대여 요청 거절 중 오류가 발생했습니다.");
+        }
     }
+
 
     @PostMapping("/{institutionCode}/cancel")
     public ResponseEntity<?> cancelWheelchair(
@@ -135,26 +141,29 @@ public class RentalController {
     }
 
 
-    //현재 사용자의 대여 정보 조회
+    // 현재 사용자의 대여 정보 조회
     @GetMapping("/info")
     public ResponseEntity<?> getRentalInfo(@RequestHeader("Authorization") String authorizationHeader) {
-        String token = authorizationHeader.substring(7);
+        String token = authorizationHeader.substring(7); // "Bearer " 제거
         String email = jwtUtil.extractEmail(token);
 
+        // 사용자 조회
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
         }
 
+        // 현재 대여 정보 조회
         Optional<Rental> rentalOptional = rentalRepository.findCurrentRentalByUser(user);
-
         if (rentalOptional.isPresent()) {
             Rental rental = rentalOptional.get();
             Wheelchair wheelchair = rental.getWheelchair();
             Institution institution = wheelchair.getInstitution();
 
-            RentalResponse response = new RentalResponse();
+            // UserRentalResponse DTO 생성 및 반환
+            UserRentalResponse response = new UserRentalResponse();
             response.setRentalId(rental.getRentalId());
+            response.setRentalCode(rental.getRentalCode());
             response.setRentalDate(rental.getRentalDate().toString());
             response.setReturnDate(rental.getReturnDate() != null ? rental.getReturnDate().toString() : "반납 예정 없음");
             response.setStatus(rental.getStatus().name());
@@ -162,13 +171,14 @@ public class RentalController {
             response.setInstitutionName(institution.getName());
             response.setInstitutionAddress(institution.getAddress());
             response.setInstitutionPhone(institution.getTelNumber());
-            response.setInstitutionCode(institution.getInstitutionCode()); // 공공기관 코드 설정
+            response.setInstitutionCode(institution.getInstitutionCode());
 
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("현재 대여 내역이 없습니다.");
         }
     }
+
 
     //상태별 휠체어 조회
     @GetMapping("/api/wheelchairs")
@@ -182,6 +192,4 @@ public class RentalController {
         }
         return ResponseEntity.ok(wheelchairs);
     }
-
-
 }

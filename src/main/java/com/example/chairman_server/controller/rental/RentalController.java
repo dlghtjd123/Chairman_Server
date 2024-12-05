@@ -7,12 +7,15 @@ import com.example.chairman_server.domain.rental.RentalStatus;
 import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
+import com.example.chairman_server.dto.Institution.InstitutionData;
 import com.example.chairman_server.dto.rental.RentalRequest;
 import com.example.chairman_server.dto.rental.UserRentalResponse;
 import com.example.chairman_server.dto.rental.WaitingRentalResponse;
+import com.example.chairman_server.dto.wheelchair.WheelchairDetailResponse;
 import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.user.UserRepository;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
+import com.example.chairman_server.service.institution.InstitutionService;
 import com.example.chairman_server.service.rental.RentalService;
 import com.example.chairman_server.service.wheelchair.WheelchairService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -34,6 +38,7 @@ import java.util.Optional;
 public class RentalController {
     private final RentalService rentalService;
     private final WheelchairService wheelchairService;
+    private final InstitutionService institutionService;
     private final JwtUtil jwtUtil; // JwtUtil 주입
     private final WheelchairRepository wheelchairRepository;
     private final RentalRepository rentalRepository;
@@ -77,6 +82,41 @@ public class RentalController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("대여 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
+
+    @GetMapping("/{institutionCode}/details")
+    public ResponseEntity<List<WheelchairDetailResponse>> getWheelchairDetails(
+            @PathVariable Long institutionCode,
+            @RequestParam(required = false) String status) {
+
+        Institution institution = institutionService.findByInstitutionCode(institutionCode);
+        if (institution == null) {
+            throw new RuntimeException("기관을 찾을 수 없습니다.");
+        }
+
+        List<Wheelchair> wheelchairs;
+
+        if ("ALL".equalsIgnoreCase(status)) {
+            // 기관의 모든 휠체어 가져오기
+            wheelchairs = wheelchairRepository.findByInstitution(institution);
+        } else {
+            // 특정 상태의 휠체어 가져오기
+            WheelchairStatus wheelchairStatus = WheelchairStatus.valueOf(status.toUpperCase());
+            wheelchairs = wheelchairRepository.findByInstitutionAndStatus(institution, wheelchairStatus);
+        }
+
+        List<WheelchairDetailResponse> response = wheelchairs.stream()
+                .map(wheelchair -> new WheelchairDetailResponse(
+                        wheelchair.getWheelchairId(),
+                        wheelchair.getType().name(), // WheelchairType -> String 변환
+                        wheelchair.getStatus().name(), // WheelchairStatus -> String 변환
+                        wheelchair.getUser() != null ? wheelchair.getUser().getName() : null,
+                        wheelchair.getUser() != null ? wheelchair.getUser().getPhoneNumber() : null
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
 
 
     // 대여 요청 승인
@@ -153,31 +193,40 @@ public class RentalController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
         }
 
-        // 현재 대여 정보 조회
+        // 현재 대여 정보 조회 (RentalStatus가 ACTIVE, WAITING, ACCEPTED 상태인 경우 반환)
         Optional<Rental> rentalOptional = rentalRepository.findCurrentRentalByUser(user);
         if (rentalOptional.isPresent()) {
             Rental rental = rentalOptional.get();
-            Wheelchair wheelchair = rental.getWheelchair();
-            Institution institution = wheelchair.getInstitution();
 
-            // UserRentalResponse DTO 생성 및 반환
-            UserRentalResponse response = new UserRentalResponse();
-            response.setRentalId(rental.getRentalId());
-            response.setRentalCode(rental.getRentalCode());
-            response.setRentalDate(rental.getRentalDate().toString());
-            response.setReturnDate(rental.getReturnDate() != null ? rental.getReturnDate().toString() : "반납 예정 없음");
-            response.setStatus(rental.getStatus().name());
-            response.setWheelchairType(wheelchair.getType().name());
-            response.setInstitutionName(institution.getName());
-            response.setInstitutionAddress(institution.getAddress());
-            response.setInstitutionPhone(institution.getTelNumber());
-            response.setInstitutionCode(institution.getInstitutionCode());
+            // 상태 체크
+            if (rental.getStatus() == RentalStatus.ACTIVE
+                    || rental.getStatus() == RentalStatus.WAITING
+                    || rental.getStatus() == RentalStatus.ACCEPTED) {
 
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("현재 대여 내역이 없습니다.");
+                Wheelchair wheelchair = rental.getWheelchair();
+                Institution institution = wheelchair.getInstitution();
+
+                // UserRentalResponse DTO 생성 및 반환
+                UserRentalResponse response = new UserRentalResponse();
+                response.setRentalId(rental.getRentalId());
+                response.setRentalCode(rental.getRentalCode());
+                response.setRentalDate(rental.getRentalDate().toString());
+                response.setReturnDate(rental.getReturnDate() != null ? rental.getReturnDate().toString() : "반납 예정 없음");
+                response.setStatus(rental.getStatus().name());
+                response.setWheelchairType(wheelchair.getType().name());
+                response.setInstitutionName(institution.getName());
+                response.setInstitutionAddress(institution.getAddress());
+                response.setInstitutionPhone(institution.getTelNumber());
+                response.setInstitutionCode(institution.getInstitutionCode());
+
+                return ResponseEntity.ok(response);
+            }
         }
+
+        // 대여 정보가 없거나 상태가 맞지 않는 경우
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("현재 대여 내역이 없습니다.");
     }
+
 
 
     //상태별 휠체어 조회

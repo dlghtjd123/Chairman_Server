@@ -16,7 +16,7 @@ import java.util.Optional;
 @Repository
 public interface RentalRepository extends JpaRepository<Rental, Long> {
 
-    @Query("SELECT r FROM Rental r WHERE r.user = ?1 AND r.status IN (com.example.chairman_server.domain.rental.RentalStatus.ACTIVE, com.example.chairman_server.domain.rental.RentalStatus.WAITING)")
+    @Query("SELECT r FROM Rental r WHERE r.user = ?1 AND r.status IN (com.example.chairman_server.domain.rental.RentalStatus.ACTIVE, com.example.chairman_server.domain.rental.RentalStatus.WAITING, com.example.chairman_server.domain.rental.RentalStatus.ACCEPTED)")
     Optional<Rental> findCurrentRentalByUser(User user);
 
     @Query("SELECT r FROM Rental r WHERE r.status = :status AND r.wheelchair.institution = :institution")
@@ -25,4 +25,5 @@ public interface RentalRepository extends JpaRepository<Rental, Long> {
     @Query("SELECT r FROM Rental r WHERE r.user = :user AND r.status = :status")
     Optional<Rental> findByUserAndStatus(User user, RentalStatus status);
 
+    Optional<Rental> findByWheelchairAndStatus(Wheelchair wheelchair, RentalStatus status);
 }

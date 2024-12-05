@@ -1,14 +1,17 @@
 package com.example.chairman_server.controller.user;
 
 import com.example.chairman_server.config.JwtUtil;
+import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.dto.Institution.InstitutionData;
 import com.example.chairman_server.dto.user.UserUpdateRequest;
 import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.user.UserRepository;
+import com.example.chairman_server.service.institution.InstitutionService;
 import com.example.chairman_server.service.rental.RentalService;
 import com.example.chairman_server.service.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +27,7 @@ public class UserController {
     private final RentalService rentalService;
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final InstitutionService institutionService;
     private final UserRepository userRepository;
     private final RentalRepository rentalRepository;
 
@@ -46,6 +50,26 @@ public class UserController {
         List<InstitutionData> institutions = userService.getAllInstitutions();
         return ResponseEntity.ok(institutions);
     }
+
+    @GetMapping("/institutions/{institutionCode}")
+    public ResponseEntity<InstitutionData> getInstitutionByCode(@PathVariable Long institutionCode) {
+        Institution institution = institutionService.findByInstitutionCode(institutionCode);
+        if (institution == null) {
+            return ResponseEntity.status(404).build(); // 404 Not Found 반환
+        }
+
+        // Institution -> InstitutionData 변환
+        InstitutionData institutionData = new InstitutionData(
+                institution.getInstitutionId(),
+                institution.getName(),
+                institution.getTelNumber(),
+                institution.getInstitutionCode(),
+                institution.getAddress()
+        );
+
+        return ResponseEntity.ok(institutionData);
+    }
+
 
     // 사용자 정보 조회
     @GetMapping("/info")

@@ -1,6 +1,7 @@
 package com.example.chairman_server.service.wheelchair;
 
 import com.example.chairman_server.domain.Institution.Institution;
+import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.dto.wheelchair.WheelchairDetailResponse;
@@ -39,6 +40,30 @@ public class WheelchairService {
     public Institution validateInstitution(Long institutionCode) {
         return institutionRepository.findByInstitutionCode(institutionCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid institution code."));
+    }
+
+    public List<WheelchairDetailResponse> getWheelchairDetailsByInstitutionAndStatus(Long institutionCode, String status) {
+        List<Wheelchair> wheelchairs = wheelchairRepository.findAllByInstitutionInstitutionCode(institutionCode);
+
+        return wheelchairs.stream()
+                .filter(wheelchair -> wheelchair.getStatus().toString().equalsIgnoreCase(status))
+                .map(wheelchair -> {
+                    WheelchairDetailResponse response = new WheelchairDetailResponse();
+                    response.setWheelchairId(wheelchair.getWheelchairId());
+                    response.setType(wheelchair.getType().toString());
+                    response.setStatus(wheelchair.getStatus().toString());
+
+                    // 대여자 정보 추가
+                    if ("RENTED".equals(wheelchair.getStatus().toString())
+                            || "ACCEPTED".equals(wheelchair.getStatus().toString())
+                            || "WAITING".equals(wheelchair.getStatus().toString())) {
+                        if (wheelchair.getUser() != null) {
+                            response.setUserName(wheelchair.getUser().getName());
+                            response.setUserPhone(wheelchair.getUser().getPhoneNumber());
+                        }
+                    }
+                    return response;
+                }).collect(Collectors.toList());
     }
 
     public List<WheelchairDetailResponse> getDetailsByStatus(Long institutionCode, String status) {
@@ -87,5 +112,17 @@ public class WheelchairService {
         statusCounts.put("ACCEPTED", (long) wheelchairRepository.countByInstitutionAndStatus(institution, WheelchairStatus.ACCEPTED));
 
         return statusCounts;
+    }
+
+    public void updateStatus(Long wheelchairId, String status) {
+        Wheelchair wheelchair = wheelchairRepository.findById(wheelchairId)
+                .orElseThrow(() -> new IllegalArgumentException("Wheelchair not found with ID: " + wheelchairId));
+
+        try {
+            wheelchair.setStatus(WheelchairStatus.valueOf(status.toUpperCase())); // Enum 처리
+            wheelchairRepository.save(wheelchair);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status: " + status);
+        }
     }
 }

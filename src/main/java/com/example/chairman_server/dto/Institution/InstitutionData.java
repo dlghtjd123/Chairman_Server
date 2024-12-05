@@ -1,10 +1,12 @@
 package com.example.chairman_server.dto.Institution;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class InstitutionData {
     private Long id;
     private String name;

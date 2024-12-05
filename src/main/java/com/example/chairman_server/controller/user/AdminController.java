@@ -2,10 +2,15 @@ package com.example.chairman_server.controller.user;
 
 import com.example.chairman_server.config.JwtUtil;
 import com.example.chairman_server.domain.Institution.Institution;
+import com.example.chairman_server.domain.rental.Rental;
+import com.example.chairman_server.domain.rental.RentalStatus;
+import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.dto.wheelchair.WheelchairDetailResponse;
+import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
 import com.example.chairman_server.dto.user.InstitutionLoginResponse;
+import com.example.chairman_server.service.institution.InstitutionService;
 import com.example.chairman_server.service.user.AdminService;
 import com.example.chairman_server.service.wheelchair.WheelchairService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
@@ -24,7 +31,9 @@ public class AdminController {
     private final AdminService adminService;
     private final WheelchairService wheelchairService;
     private final WheelchairRepository wheelchairRepository;
+    private final InstitutionService institutionService;
     private final JwtUtil jwtUtil;
+    private final RentalRepository rentalRepository;
 
     // 기관 유효성 검증 메서드
     private Institution validateInstitution(Long institutionCode) {
@@ -47,8 +56,6 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
-
-
 
     // 대여 승인
     @PostMapping("/{institutionCode}/reservation/approve/{rentalId}")
@@ -84,15 +91,105 @@ public class AdminController {
     @GetMapping("/{institutionCode}/details")
     public ResponseEntity<List<WheelchairDetailResponse>> getWheelchairDetails(
             @PathVariable Long institutionCode,
-            @RequestParam("status") String status) {
+            @RequestParam(required = false) String status) {
+
+        Institution institution = institutionService.findByInstitutionCode(institutionCode);
+        if (institution == null) {
+            throw new RuntimeException("기관을 찾을 수 없습니다.");
+        }
+
+        List<Wheelchair> wheelchairs;
+        if ("ALL".equalsIgnoreCase(status)) {
+            wheelchairs = wheelchairRepository.findByInstitution(institution);
+        } else {
+            WheelchairStatus wheelchairStatus = WheelchairStatus.valueOf(status.toUpperCase());
+            wheelchairs = wheelchairRepository.findByInstitutionAndStatus(institution, wheelchairStatus);
+        }
+
+        List<WheelchairDetailResponse> response = wheelchairs.stream()
+                .map(wheelchair -> new WheelchairDetailResponse(
+                        wheelchair.getWheelchairId(),
+                        wheelchair.getType().name(),
+                        wheelchair.getStatus().name(),
+                        wheelchair.getUser() != null ? wheelchair.getUser().getName() : null,
+                        wheelchair.getUser() != null ? wheelchair.getUser().getPhoneNumber() : null
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/wheelchair/{wheelchairId}/status")
+    public ResponseEntity<?> updateWheelchairAndRentalStatus(
+            @PathVariable Long wheelchairId,
+            @RequestParam String wheelchairStatus,
+            @RequestParam String rentalStatus) {
+
+        Wheelchair wheelchair = wheelchairRepository.findById(wheelchairId)
+                .orElseThrow(() -> new RuntimeException("해당 ID의 휠체어를 찾을 수 없습니다."));
+
         try {
-            // "ALL" 상태는 Service에서 처리
-            List<WheelchairDetailResponse> details = wheelchairService.getDetailsByStatus(institutionCode, status);
-            return ResponseEntity.ok(details);
+            // Wheelchair 상태 업데이트
+            WheelchairStatus newWheelchairStatus = WheelchairStatus.valueOf(wheelchairStatus.toUpperCase());
+            wheelchair.setStatus(newWheelchairStatus);
+            System.out.println("Updated Wheelchair status to: " + newWheelchairStatus);  // 로그 추가
+
+            // Rental 상태 업데이트
+            Optional<Rental> activeRental = rentalRepository.findByWheelchairAndStatus(wheelchair, RentalStatus.ACTIVE);
+            if (activeRental.isPresent()) {
+                Rental rental = activeRental.get();
+                RentalStatus newRentalStatus = RentalStatus.valueOf(rentalStatus.toUpperCase());
+                rental.setStatus(newRentalStatus);  // 상태 변경
+                rentalRepository.save(rental); // 대여 상태 저장
+                System.out.println("Updated Rental status to: " + newRentalStatus);  // 로그 추가
+            } else {
+                System.out.println("No active rental found for wheelchairId: " + wheelchairId);  // 로그 추가
+            }
+
+            // 휠체어 상태가 AVAILABLE로 변경되면 user_id를 null로 설정
+            if (newWheelchairStatus == WheelchairStatus.AVAILABLE) {
+                wheelchair.removeUser(); // 대여자 정보 초기화 (user_id null)
+                System.out.println("Wheelchair status changed to AVAILABLE. Removed user information.");  // 로그 추가
+            }
+
+            wheelchairRepository.save(wheelchair); // 휠체어 상태 저장
+            return ResponseEntity.ok("휠체어 및 대여 상태가 성공적으로 업데이트되었습니다.");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // 상태가 잘못된 경우
+            return ResponseEntity.badRequest().body("잘못된 상태 값: " + e.getMessage());
         }
     }
+
+
+
+
+
+
+
+    @PutMapping("/wheelchair/{wheelchairId}/onlyStatus")
+    public ResponseEntity<?> updateWheelchairStatus(
+            @PathVariable Long wheelchairId,
+            @RequestParam String status) {
+
+        Wheelchair wheelchair = wheelchairRepository.findById(wheelchairId)
+                .orElseThrow(() -> new RuntimeException("해당 ID의 휠체어를 찾을 수 없습니다."));
+
+        try {
+            // Wheelchair 상태 업데이트
+            WheelchairStatus newStatus = WheelchairStatus.valueOf(status.toUpperCase());
+            wheelchair.setStatus(newStatus);
+
+            // 특정 상태 전환 시 사용자 정보 초기화
+            if (newStatus == WheelchairStatus.AVAILABLE) {
+                wheelchair.removeUser(); // user_id를 null로 설정
+            }
+
+            wheelchairRepository.save(wheelchair);
+            return ResponseEntity.ok("휠체어 상태가 성공적으로 업데이트되었습니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("잘못된 상태 값: " + e.getMessage());
+        }
+    }
+
 
 
 }

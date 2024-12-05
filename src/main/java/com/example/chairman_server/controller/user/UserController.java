@@ -14,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -98,6 +100,24 @@ public class UserController {
         userService.updateUserInfo(email, updateRequest.getName(), updateRequest.getPhoneNumber(), updateRequest.getAddress());
 
         return ResponseEntity.ok("사용자 정보가 성공적으로 수정되었습니다.");
+    }
+
+    //사용자 프로필 사진 업로드
+    @PostMapping("/profile/photo")
+    public ResponseEntity<?> uploadProfilePhoto(@RequestHeader("Authorization") String authorizationHeader,
+                                                @RequestParam("photo") MultipartFile photo) {
+        String token = authorizationHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+
+        try {
+            //프로필 사진 저장 처리
+            String photoUrl = userService.saveProfilePhto(email, photo);
+
+            return ResponseEntity.ok(Map.of("message","프로필 사진이 성공적으로 업로드되었습니다.", "photoUrl", photoUrl));
+        } catch (IOException e) {
+            log.error("프로필 사진 업로드 실패: {}", e.getMessage());
+            return ResponseEntity.status(500).body("프로필 사진 업로드에 실패했습니다.");
+        }
     }
 
 }

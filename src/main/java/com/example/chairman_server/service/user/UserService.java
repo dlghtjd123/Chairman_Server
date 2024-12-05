@@ -8,7 +8,10 @@ import com.example.chairman_server.repository.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,17 +68,34 @@ public class UserService {
         userRepository.save(user);  // 변경된 정보 저장
     }
 
-    // 특정 기관의 대시보드 데이터 가져오기
-    public InstitutionData getInstitutionData(Long institutionId) {
-        Institution institution = institutionRepository.findById(institutionId)
-                .orElseThrow(() -> new IllegalArgumentException("기관을 찾을 수 없습니다."));
-        return new InstitutionData(
-                institution.getInstitutionId(),
-                institution.getName(),
-                institution.getTelNumber(),
-                institution.getInstitutionCode(),
-                institution.getAddress()
-        );
+    //프로필 사진 업로드 메서드
+    public String saveProfilePhoto(String email, MultipartFile photo) throws IOException {
+        //이메일로 사용자 조회
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        //업로드 디렉토리 설정
+        String uploadDir = "uploads/profile_photos/";
+        File uploadDirFile = new File(uploadDir);
+        if (!uploadDirFile.exists()) {
+            uploadDirFile.mkdirs();
+        }
+
+        //파일 이름 생성 (이메일 + 파일 이름 조합)
+        String fileName = email + "_" + photo.getOriginalFilename();
+        File destinationFile = new File(uploadDir + fileName);
+
+        //파일 저장
+        photo.transferTo(destinationFile);
+
+        //저장된 파일의 URL 생성
+        String fileUrl = "/uploads/profile_photos/" + fileName;
+
+        //사용자 엔티티에 프로필 이미지 URL 업데이트
+        user.setProfileImageUrl(fileUrl);
+        userRepository.save(user);
+
+        return fileUrl;
     }
 
     // 모든 공공기관 조회

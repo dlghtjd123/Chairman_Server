@@ -55,8 +55,21 @@ public class NormalService {
     }
 
 
-    public Optional<User> findByEmailWithRentals(String email) {
-        return userRepository.findByEmailWithRentals(email);
+    public boolean isEmailExists(String email) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("이메일이 유효하지 않습니다.");
+        }
+        boolean exists = userRepository.existsByEmail(email);
+        System.out.println("이메일 중복 확인 [" + email + "] : " + exists);
+        return exists;
     }
 
+    public boolean isPhoneNumberExists(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            throw new IllegalArgumentException("이메일이 유효하지 않습니다.");
+        }
+        boolean exists = userRepository.existsByPhoneNumber(phoneNumber);
+        System.out.println("전화번호 중복 확인 [" + phoneNumber + "] : " + exists);
+        return exists;
+    }
 }

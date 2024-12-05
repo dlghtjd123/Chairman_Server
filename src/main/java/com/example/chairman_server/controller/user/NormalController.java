@@ -28,6 +28,7 @@ public class NormalController {
 
     private final NormalService userService;
     private final JwtUtil jwtUtil;
+    private final NormalService normalService;
 
     // 회원가입 처리
     @PostMapping("/signup")
@@ -122,6 +123,22 @@ public class NormalController {
 
         // Authorization 헤더가 없는 경우
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authorization header missing");
+    }
+    
+    @GetMapping("/check-email")
+    public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        if (normalService.isEmailExists(email)) {
+            return ResponseEntity.status((HttpStatus.CONFLICT)).body("이미 존재하는 이메일입니다.");
+        }
+        return ResponseEntity.ok("사용 가능한 이메일입니다.");
+    }
+
+    @GetMapping("/check-phone")
+    public ResponseEntity<?> checkPhone(@RequestParam String phoneNumber) {
+        if (normalService.isPhoneNumberExists(phoneNumber)) {
+            return ResponseEntity.status((HttpStatus.CONFLICT)).body("이미 존재하는 전화번호입니다.");
+        }
+        return ResponseEntity.ok("사용 가능한 전화번호입니다.");
     }
 
 }

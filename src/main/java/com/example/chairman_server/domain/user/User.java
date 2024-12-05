@@ -42,15 +42,45 @@ public class User {
     @Enumerated(EnumType.STRING)
     private RentalStatus status = RentalStatus.NORMAL;
 
+    //동의서 관련 필드 추가
+    @Column(nullable = false)
+    private Boolean agreeTerms; //이용약관 동의
+
+    @Column(nullable = false)
+    private Boolean agreePrivacy; //개인정보 처리방침 동의
+
+    @Column(nullable = false)
+    private Boolean agreeThirdParty; //제3자 정보 제공 동의
+
+    //프로필 이미지 URL 필드 추가
+    @Column(nullable = false)
+    private String profileImageUrl;
+
     public User() {
     }
 
-    public User(String email, String password, String phoneNumber, String name, String address, UserRole role) {
+    public User(String email, String password, String phoneNumber, String name, String address, UserRole role, Boolean agreeTerms, Boolean agreePrivacy, Boolean agreeThirdParty) {
         this.email = email;
         this.password = password;
         this.phoneNumber = phoneNumber;
         this.name = name;
         this.address = address;
         this.role = role;
+        this.agreeTerms = false;
+        this.agreePrivacy = false;
+        this.agreeThirdParty = false;
+    }
+
+    public User(String email, String password, String phoneNumber, String name, String address, UserRole role, Boolean agreeTerms, Boolean agreePrivacy, Boolean agreeThirdParty, String profileImageUrl) {
+        this.email = email;
+        this.password = password;
+        this.phoneNumber = phoneNumber;
+        this.name = name;
+        this.address = address;
+        this.role = role;
+        this.agreeTerms = false;
+        this.agreePrivacy = false;
+        this.agreeThirdParty = false;
+        this.profileImageUrl = profileImageUrl;
     }
 }

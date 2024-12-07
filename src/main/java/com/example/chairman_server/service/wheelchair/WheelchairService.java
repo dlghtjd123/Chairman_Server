@@ -1,11 +1,14 @@
 package com.example.chairman_server.service.wheelchair;
 
 import com.example.chairman_server.domain.Institution.Institution;
+import com.example.chairman_server.domain.rental.Rental;
+import com.example.chairman_server.domain.rental.RentalStatus;
 import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.dto.wheelchair.WheelchairDetailResponse;
 import com.example.chairman_server.repository.Institution.InstitutionRepository;
+import com.example.chairman_server.repository.rental.RentalRepository;
 import com.example.chairman_server.repository.wheelchair.WheelchairRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ public class WheelchairService {
     @Autowired
     private WheelchairRepository wheelchairRepository;
     private final InstitutionRepository institutionRepository;
+    private RentalRepository rentalRepository;
 
     //상태에 따른 휠체어 목록 반환
     public List<Wheelchair> findByStatus(WheelchairStatus status) {
@@ -51,20 +55,24 @@ public class WheelchairService {
                     WheelchairDetailResponse response = new WheelchairDetailResponse();
                     response.setWheelchairId(wheelchair.getWheelchairId());
                     response.setType(wheelchair.getType().toString());
-                    response.setStatus(wheelchair.getStatus().toString());
+                    response.setWheelchairStatus(wheelchair.getStatus().toString());
+
+                    // 대여 상태 추가
+                    Rental activeRental = rentalRepository.findByWheelchairAndStatus(wheelchair, RentalStatus.ACTIVE).orElse(null);
+                    if (activeRental != null) {
+                        response.setRentalStatus(activeRental.getStatus().toString());
+                    }
 
                     // 대여자 정보 추가
-                    if ("RENTED".equals(wheelchair.getStatus().toString())
-                            || "ACCEPTED".equals(wheelchair.getStatus().toString())
-                            || "WAITING".equals(wheelchair.getStatus().toString())) {
-                        if (wheelchair.getUser() != null) {
-                            response.setUserName(wheelchair.getUser().getName());
-                            response.setUserPhone(wheelchair.getUser().getPhoneNumber());
-                        }
+                    if (wheelchair.getUser() != null) {
+                        response.setUserName(wheelchair.getUser().getName());
+                        response.setUserPhone(wheelchair.getUser().getPhoneNumber());
                     }
+
                     return response;
                 }).collect(Collectors.toList());
     }
+
 
     public List<WheelchairDetailResponse> getDetailsByStatus(Long institutionCode, String status) {
         Institution institution = validateInstitution(institutionCode); // 기관 검증
@@ -79,26 +87,29 @@ public class WheelchairService {
             wheelchairs = wheelchairRepository.findByInstitutionAndStatus(institution, wheelchairStatus);
         }
 
-        // WheelchairDetailResponse로 변환
         return wheelchairs.stream()
                 .map(wheelchair -> {
                     WheelchairDetailResponse response = new WheelchairDetailResponse();
                     response.setWheelchairId(wheelchair.getWheelchairId());
-                    response.setStatus(wheelchair.getStatus().name());
+                    response.setWheelchairStatus(wheelchair.getStatus().name());
                     response.setType(wheelchair.getType().name());
 
-                    // RENTED나 BROKEN 상태일 때 사용자 정보 포함
-                    if (wheelchair.getStatus() == WheelchairStatus.RENTED || wheelchair.getStatus() == WheelchairStatus.WAITING) {
-                        if (wheelchair.getUser() != null) {
-                            response.setUserName(wheelchair.getUser().getName());
-                            response.setUserPhone(wheelchair.getUser().getPhoneNumber());
-                        }
+                    // 대여 상태 설정
+                    Rental activeRental = rentalRepository.findByWheelchairAndStatus(wheelchair, RentalStatus.ACTIVE).orElse(null);
+                    if (activeRental != null) {
+                        response.setRentalStatus(activeRental.getStatus().name());
+                    }
+
+                    // 대여자 정보 포함
+                    if (wheelchair.getUser() != null) {
+                        response.setUserName(wheelchair.getUser().getName());
+                        response.setUserPhone(wheelchair.getUser().getPhoneNumber());
                     }
 
                     return response;
-                })
-                .collect(Collectors.toList());
+                }).collect(Collectors.toList());
     }
+
 
 
     public Map<String, Long> getStatusCounts(Long institutionCode) {

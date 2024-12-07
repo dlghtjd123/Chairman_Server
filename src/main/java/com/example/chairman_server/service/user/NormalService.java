@@ -32,13 +32,32 @@ public class NormalService {
 
 
     public User create(UserCreateRequest request) {
+
+        // 입력값 유효성 검사
+        if (request == null) {
+            throw new IllegalArgumentException("회원가입 요청이 null입니다.");
+        }
+
+        // 이메일 중복 확인
+        if (isEmailExists(request.getEmail())) {
+            throw new IllegalArgumentException("중복된 이메일입니다: " + request.getEmail());
+        }
+
+        // 전화번호 중복 확인
+        if (isPhoneNumberExists(request.getPhoneNumber())) {
+            throw new IllegalArgumentException("중복된 전화번호입니다: " + request.getPhoneNumber());
+        }
+        // 사용자 생성
         User user = new User(
                 request.getEmail(),
                 passwordEncoder.encode(request.getPassword()),
                 request.getPhoneNumber(),
-                request.getName(),  // name 필드를 포함하여 생성자 호출
+                request.getName(),
                 request.getAddress(),
-                request.isAdmin() ? UserRole.ADMIN : UserRole.USER
+                request.isAdmin() ? UserRole.ADMIN : UserRole.USER,
+                request.isAgreeTerms(),
+                request.isAgreePrivacy(),
+                request.isAgreeThirdParty()
         );
         this.userRepository.save(user);
         return user;

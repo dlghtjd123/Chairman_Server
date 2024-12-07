@@ -105,19 +105,25 @@ public class RentalController {
         }
 
         List<WheelchairDetailResponse> response = wheelchairs.stream()
-                .map(wheelchair -> new WheelchairDetailResponse(
-                        wheelchair.getWheelchairId(),
-                        wheelchair.getType().name(), // WheelchairType -> String 변환
-                        wheelchair.getStatus().name(), // WheelchairStatus -> String 변환
-                        wheelchair.getUser() != null ? wheelchair.getUser().getName() : null,
-                        wheelchair.getUser() != null ? wheelchair.getUser().getPhoneNumber() : null
-                ))
+                .map(wheelchair -> {
+                    // 활성 대여 상태 확인
+                    Rental activeRental = rentalRepository.findByWheelchairAndStatus(wheelchair, RentalStatus.ACTIVE).orElse(null);
+                    String rentalStatus = activeRental != null ? activeRental.getStatus().name() : null;
+
+                    return new WheelchairDetailResponse(
+                            wheelchair.getWheelchairId(),
+                            wheelchair.getType() != null ? wheelchair.getType().name() : null, // WheelchairType -> String 변환
+                            wheelchair.getStatus() != null ? wheelchair.getStatus().name() : null, // WheelchairStatus -> String 변환
+                            rentalStatus, // 대여 상태 추가
+                            wheelchair.getUser() != null ? wheelchair.getUser().getName() : null, // 대여자 이름
+                            wheelchair.getUser() != null ? wheelchair.getUser().getPhoneNumber() : null // 대여자 전화번호
+                    );
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(response);
+
     }
-
-
 
     // 대여 요청 승인
     @PutMapping("/{institutionCode}/accept/{rentalId}")

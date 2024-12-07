@@ -31,4 +31,12 @@ public class UserCreateRequest {
 
     @NotNull(message = "관리자 여부는 필수항목입니다.")
     private boolean isAdmin;  // 관리자 모드 여부 추가
+
+    //동의서 3개 추가
+    @NotNull(message="이용약관 동의 여부는 필수항목입니다.")
+    private boolean agreeTerms;
+    @NotNull(message="개인정보 처리방침 동의 여부는 필수항목입니다.")
+    private boolean agreePrivacy;
+    @NotNull(message="제3자 정보 제공 동의 여부는 필수항목입니다.")
+    private boolean agreeThirdParty;
 }

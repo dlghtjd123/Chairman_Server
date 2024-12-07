@@ -111,7 +111,7 @@ public class UserController {
 
         try {
             //프로필 사진 저장 처리
-            String photoUrl = userService.saveProfilePhto(email, photo);
+            String photoUrl = userService.saveProfilePhoto(email, photo);
 
             return ResponseEntity.ok(Map.of("message","프로필 사진이 성공적으로 업로드되었습니다.", "photoUrl", photoUrl));
         } catch (IOException e) {

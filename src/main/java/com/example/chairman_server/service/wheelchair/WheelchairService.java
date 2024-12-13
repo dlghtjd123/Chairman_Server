@@ -110,8 +110,6 @@ public class WheelchairService {
                 }).collect(Collectors.toList());
     }
 
-
-
     public Map<String, Long> getStatusCounts(Long institutionCode) {
         Institution institution = validateInstitution(institutionCode); // 기관 검증
 
@@ -123,17 +121,5 @@ public class WheelchairService {
         statusCounts.put("ACCEPTED", (long) wheelchairRepository.countByInstitutionAndStatus(institution, WheelchairStatus.ACCEPTED));
 
         return statusCounts;
-    }
-
-    public void updateStatus(Long wheelchairId, String status) {
-        Wheelchair wheelchair = wheelchairRepository.findById(wheelchairId)
-                .orElseThrow(() -> new IllegalArgumentException("Wheelchair not found with ID: " + wheelchairId));
-
-        try {
-            wheelchair.setStatus(WheelchairStatus.valueOf(status.toUpperCase())); // Enum 처리
-            wheelchairRepository.save(wheelchair);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status: " + status);
-        }
     }
 }

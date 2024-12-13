@@ -26,6 +26,9 @@ public interface RentalRepository extends JpaRepository<Rental, Long> {
     @Query("SELECT r FROM Rental r WHERE r.user = :user AND r.status = :status")
     Optional<Rental> findByUserAndStatus(User user, RentalStatus status);
 
+    // 특정 휠체어의 모든 Rental 데이터를 검색 (자동 생성되는 메서드)
+    List<Rental> findAllByWheelchair(Wheelchair wheelchair);
+
     // 특정 휠체어와 상태를 기반으로 검색
     Optional<Rental> findByWheelchairAndStatus(Wheelchair wheelchair, RentalStatus status);
 
@@ -37,3 +40,4 @@ public interface RentalRepository extends JpaRepository<Rental, Long> {
     List<Rental> findAllByWheelchairAndStatus(@Param("wheelchair") Wheelchair wheelchair, @Param("status") RentalStatus status);
 
 }
+

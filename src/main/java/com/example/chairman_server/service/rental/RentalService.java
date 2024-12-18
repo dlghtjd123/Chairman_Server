@@ -117,6 +117,7 @@ public class RentalService {
         wheelchair.changeStatus(WheelchairStatus.AVAILABLE);
         rental.setStatus(RentalStatus.NORMAL);
         wheelchairRepository.save(wheelchair);
+        wheelchair.removeUser();
 
         // Rental 테이블에서 기록 삭제
         rentalRepository.delete(rental);

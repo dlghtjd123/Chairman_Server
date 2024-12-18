@@ -13,9 +13,6 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
-    @Query("SELECT u FROM User u LEFT JOIN FETCH u.rentals WHERE u.email = :email")
-    Optional<User> findByEmailWithRentals(@Param("email") String email);
-
     //이메일 중복 여부 확인
     boolean existsByEmail(String email);
 

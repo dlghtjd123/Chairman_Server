@@ -3,6 +3,7 @@ package com.example.chairman_server.service.user;
 import com.example.chairman_server.domain.Institution.Institution;
 import com.example.chairman_server.domain.rental.Rental;
 import com.example.chairman_server.domain.rental.RentalStatus;
+import com.example.chairman_server.domain.user.User;
 import com.example.chairman_server.domain.wheelchair.Wheelchair;
 import com.example.chairman_server.domain.wheelchair.WheelchairStatus;
 import com.example.chairman_server.dto.Institution.InstitutionData;
@@ -60,19 +61,27 @@ public class AdminService {
         }
 
         // 대여 상태를 "ACTIVE"로 변경
-        rental.setStatus(RentalStatus.ACTIVE);
+        rental.setStatus(RentalStatus.ACCEPTED);
         rentalRepository.save(rental);
 
         // 휠체어 상태를 "RENTED"로 변경
         Wheelchair wheelchair = rental.getWheelchair();
         wheelchair.changeStatus(WheelchairStatus.RENTED);
-        wheelchairRepository.save(wheelchair); // 휠체어 상태 저장
+        wheelchairRepository.save(wheelchair);
+
+        // User 상태를 "ACCEPTED"로 변경
+        User user = rental.getUser();
+        if (user != null) {
+            user.setStatus(RentalStatus.ACCEPTED);
+        }
 
         // 로그 추가
         System.out.println("Rental approved: " + rental.getRentalId());
 
         return rental;
     }
+
+
 
     // 요청 거절
     @Transactional
@@ -96,6 +105,12 @@ public class AdminService {
         wheelchair.setStatus(WheelchairStatus.AVAILABLE);
         wheelchairRepository.save(wheelchair);
 
+        // User 상태를 "NORMAL"로 변경
+        User user = rental.getUser();
+        if (user != null) {
+            user.setStatus(RentalStatus.NORMAL);
+        }
+
         // 대여 요청 삭제
         rentalRepository.delete(rental);
 
@@ -104,6 +119,7 @@ public class AdminService {
 
         return rental;
     }
+
 
 
     // 휠체어 상태별 통계 조회
@@ -125,5 +141,4 @@ public class AdminService {
         return institutionRepository.findByInstitutionCode(institutionCode)
                 .orElseThrow(() -> new IllegalArgumentException("기관을 찾을 수 없습니다. institutionCode: " + institutionCode));
     }
-
 }
